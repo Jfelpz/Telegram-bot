@@ -54,10 +54,10 @@ for i, row in enumerate(data, start=2):
 """
 
 if preco_antigo:
-mensagem += f"\n💸 Preço anterior: R$ {preco_antigo}"
+    mensagem += f"\n💸 Preço anterior: R$ {preco_antigo}"
 
 if desconto:
-mensagem += f"\n📉 Desconto: {desconto}%"
+    mensagem += f"\n📉 Desconto: {desconto}%"
 
 mensagem += f"""
 
