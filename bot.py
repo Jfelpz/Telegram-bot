@@ -42,9 +42,8 @@ for i, row in enumerate(data, start=2):
     loja = str(row.get("LOJA", "")).strip()
     categoria = str(row.get("CATEGORIA", "")).strip()
 
-```
+
 mensagem = f"""
-```
 
 🔥 OFERTA IMPERDÍVEL 🔥
 
@@ -56,7 +55,7 @@ mensagem = f"""
 💰 Preço: R$ {preco}
 """
 
-```
+
 if preco_antigo:
     mensagem += f"\n💸 Preço anterior: R$ {preco_antigo}"
 
@@ -64,7 +63,7 @@ if desconto:
     mensagem += f"\n📉 Desconto: {desconto}%"
 
 mensagem += f"""
-```
+
 
 ━━━━━━━━━━━━━━━
 
@@ -75,9 +74,9 @@ mensagem += f"""
 #promocao #hardware #oferta
 """
 
-```
+
 enviar_telegram(mensagem)
 
 sheet.update_cell(i, 5, "ENVIADO")
-```
+
 
