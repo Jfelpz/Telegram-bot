@@ -34,9 +34,9 @@ for i, row in enumerate(data, start=2):
     if row.get("status") == "ENVIADO":
         continue
 
-    produto = row.get("produto")
-    preco = row.get("preco")
-    link = row.get("link_afiliado")
+    produto = row.get("PRODUTO")
+    preco = row.get("PREÇO")
+    link = row.get("LINK_AFILIADO")
 
     mensagem = f"""
 🔥 <b>OFERTA IMPERDÍVEL</b> 🔥
