@@ -37,17 +37,37 @@ for i, row in enumerate(data, start=2):
     produto = row.get("PRODUTO")
     preco = row.get("PREÇO")
     link = row.get("LINK_AFILIADO")
+    preco_antigo = str(row.get("PREÇO_ANTIGO", "")).strip()
+    desconto = str(row.get("DESCONTO", "")).strip()
+    loja = str(row.get("LOJA", "")).strip()
+    categoria = str(row.get("CATEGORIA", "")).strip()
 
     mensagem = f"""
-🔥 <b>OFERTA IMPERDÍVEL</b> 🔥
+🔥 OFERTA IMPERDÍVEL 🔥
 
 🖥️ {produto}
 
-💰 <b>{preco}</b>
+🏪 Loja: {loja}
+📂 Categoria: {categoria}
 
-👉 <a href="{link}">Comprar agora</a>
+💰 Preço: R$ {preco}
+"""
 
-#promoção #hardware #oferta
+if preco_antigo:
+mensagem += f"\n💸 Preço anterior: R$ {preco_antigo}"
+
+if desconto:
+mensagem += f"\n📉 Desconto: {desconto}%"
+
+mensagem += f"""
+
+━━━━━━━━━━━━━━━
+
+⚠️ Oferta sujeita a alteração de preço e estoque.
+
+👉 COMPRAR AGORA
+
+#promocao #hardware #oferta
 """
 
     enviar_telegram(mensagem)
