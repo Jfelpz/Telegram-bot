@@ -58,66 +58,34 @@ for i, row in enumerate(data, start=2):
     if row.get("status") == "ENVIADO":
         continue
 
+    prioridade = str(row.get("PRIORIDADE", "")).upper()
+    desconto_valor = float(str(row.get("DESCONTO", "0")).replace("%", ""))
+
+    # ✅ FILTRO (DENTRO DO FOR)
+    if prioridade != "ALTA" and desconto_valor < 15:
+        continue
+
     produto = row.get("PRODUTO")
     preco = row.get("PREÇO")
     link = row.get("LINK_AFILIADO")
-    preco_antigo = str(row.get("PREÇO_ANTIGO", "")).strip()
-    desconto = str(row.get("DESCONTO", "")).strip()
-    loja = str(row.get("LOJA", "")).strip()
-    categoria = str(row.get("CATEGORIA", "")).strip()
-    desconto_valor = str(row.get("DESCONTO", "")).replace("%", "").strip()
-    prioridade = str(row.get("PRIORIDADE", "")).strip().upper()
-    
-    if desconto_valor:
-        desconto_valor = float(desconto_valor)
-    else:
-        desconto_valor = 0
-    
-    # FILTRO DE QUALIDADE
-if prioridade != "ALTA" and desconto_valor < 15:
-    continue
 
-mensagem = f"""
-🔥 <b>OFERTA RELÂMPAGO</b> 🔥
+    mensagem = f"""
+🔥 OFERTA RELÂMPAGO 🔥
 
-🖥️ <b>{produto}</b>
-
-🏪 Loja: {loja}
-📂 Categoria: {categoria}
-
-💰 Preço: R$ {preco}
-"""
-
-if preco_antigo:
-    mensagem += f"\n💸 <b>De:</b> R$ {preco_antigo}"
-
-if desconto:
-    mensagem += f"\n📉 <b>Desconto:</b> {desconto}%"
-
-mensagem += f"""
-
-━━━━━━━━━━━━━━━
-
-⚠️ <b>ATENÇÃO:</b> preço pode mudar a qualquer momento ou acabar rápido.
-
-⏳ <b>Estoque limitado</b> — disponível por tempo reduzido.
-
-🚀 <b>Não perca essa oportunidade</b>
+🖥️ {produto}
+💰 R$ {preco}
 
 👉 <a href="{link}">COMPRAR AGORA</a>
-
-#promoção #hardware #oferta
 """
 
-enviar_telegram(mensagem)
+    enviar_telegram(mensagem)
 
-sheet.update_cell(i, 5, "ENVIADO")
+    sheet.update_cell(i, 5, "ENVIADO")
 
-data_postagem = datetime.now(
-    ZoneInfo("America/Fortaleza")
-).strftime("%d/%m/%Y %H:%M")
+    data_postagem = datetime.now(
+        ZoneInfo("America/Fortaleza")
+    ).strftime("%d/%m/%Y %H:%M")
 
-sheet.update_cell(i, 12, data_postagem)
+    sheet.update_cell(i, 12, data_postagem)
 
-posts_enviados += 1
-
+    posts_enviados += 1
