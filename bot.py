@@ -58,24 +58,52 @@ for i, row in enumerate(data, start=2):
     if row.get("status") == "ENVIADO":
         continue
 
-    prioridade = str(row.get("PRIORIDADE", "")).upper()
-    desconto_valor = float(str(row.get("DESCONTO", "0")).replace("%", ""))
-
-    # ✅ FILTRO (DENTRO DO FOR)
-    if prioridade != "ALTA" and desconto_valor < 15:
-        continue
-
     produto = row.get("PRODUTO")
     preco = row.get("PREÇO")
     link = row.get("LINK_AFILIADO")
 
+    preco_antigo = str(row.get("PREÇO_ANTIGO", "")).strip()
+    desconto = str(row.get("DESCONTO", "")).strip()
+    loja = str(row.get("LOJA", "")).strip()
+    categoria = str(row.get("CATEGORIA", "")).strip()
+
+    prioridade = str(row.get("PRIORIDADE", "")).strip().upper()
+    desconto_valor = float(desconto.replace("%", "") or 0)
+
+    # 🔥 FILTRO DE QUALIDADE
+    if prioridade != "ALTA" and desconto_valor < 15:
+        continue
+
+    # 🔥 MENSAGEM COM GATILHOS MENTAIS
     mensagem = f"""
-🔥 OFERTA RELÂMPAGO 🔥
+🔥 <b>OFERTA RELÂMPAGO</b> 🔥
 
-🖥️ {produto}
-💰 R$ {preco}
+⚡ <b>{produto}</b>
 
-👉 <a href="{link}">COMPRAR AGORA</a>
+🏪 Loja: {loja}
+📂 Categoria: {categoria}
+
+💰 <b>Preço atual:</b> R$ {preco}
+"""
+
+    if preco_antigo:
+        mensagem += f"\n💸 <b>De:</b> R$ {preco_antigo}"
+
+    if desconto:
+        mensagem += f"\n📉 <b>Desconto:</b> {desconto}"
+
+    mensagem += f"""
+
+━━━━━━━━━━━━━━━
+
+⏳ <b>ATENÇÃO:</b> oferta pode acabar a qualquer momento
+📦 <b>Estoque limitado</b> — alta demanda
+
+🚀 <b>Não perca essa oportunidade</b>
+
+👉 <a href="{link}">🔥 COMPRAR AGORA 🔥</a>
+
+#promoção #hardware #oferta
 """
 
     enviar_telegram(mensagem)
