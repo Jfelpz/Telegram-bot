@@ -19,7 +19,18 @@ creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
 client = gspread.authorize(creds)
 
 sheet = client.open_by_key(SHEET_ID).sheet1
-data = sheet.get_all_records()
+prioridade_ordem = {
+    "ALTA": 1,
+    "MEDIA": 2,
+    "BAIXA": 3
+}
+
+data.sort(
+    key=lambda row: prioridade_ordem.get(
+        str(row.get("PRIORIDADE", "BAIXA")).upper(),
+        3
+    )
+)
 
 def enviar_telegram(texto):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
