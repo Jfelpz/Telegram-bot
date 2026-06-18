@@ -74,10 +74,10 @@ for i, row in enumerate(data, start=2):
         desconto_valor = 0
     
     # FILTRO DE QUALIDADE
-    if prioridade != "ALTA" and desconto_valor < 15:
-        continue
+if prioridade != "ALTA" and desconto_valor < 15:
+    continue
 
-    mensagem = f"""
+mensagem = f"""
 🔥 <b>OFERTA RELÂMPAGO</b> 🔥
 
 🖥️ <b>{produto}</b>
@@ -108,16 +108,16 @@ mensagem += f"""
 
 #promoção #hardware #oferta
 """
-    enviar_telegram(mensagem)
 
-    sheet.update_cell(i, 5, "ENVIADO")
+enviar_telegram(mensagem)
 
-    data_postagem = datetime.now(
-        ZoneInfo("America/Fortaleza")
-    ).strftime("%d/%m/%Y %H:%M")
+sheet.update_cell(i, 5, "ENVIADO")
 
-    sheet.update_cell(i, 12, data_postagem)
+data_postagem = datetime.now(
+    ZoneInfo("America/Fortaleza")
+).strftime("%d/%m/%Y %H:%M")
 
-    posts_enviados += 1
+sheet.update_cell(i, 12, data_postagem)
 
+posts_enviados += 1
 
