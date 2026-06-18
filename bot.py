@@ -4,6 +4,7 @@ import gspread
 import requests
 from datetime import datetime
 from oauth2client.service_account import ServiceAccountCredentials
+from zoneinfo import ZoneInfo
 
 # Configurações
 SHEET_ID = os.getenv("SHEET_ID")
@@ -80,7 +81,9 @@ enviar_telegram(mensagem)
 
 sheet.update_cell(i, 5, "ENVIADO")
 
-data_postagem = datetime.now().strftime("%d/%m/%Y %H:%M")
-sheet.update_cell(i, 12, data_postagem)
+data_postagem = datetime.now(
+    ZoneInfo("America/Fortaleza")
+).strftime("%d/%m/%Y %H:%M")
+
 
 
