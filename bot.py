@@ -47,7 +47,13 @@ def enviar_telegram(texto):
     }
     requests.post(url, data=payload)
 
+posts_enviados = 0
+limite = 1
+
 for i, row in enumerate(data, start=2):
+
+    if posts_enviados >= limite:
+        break
 
     if row.get("status") == "ENVIADO":
         continue
@@ -60,9 +66,7 @@ for i, row in enumerate(data, start=2):
     loja = str(row.get("LOJA", "")).strip()
     categoria = str(row.get("CATEGORIA", "")).strip()
 
-
-mensagem = f"""
-
+    mensagem = f"""
 🔥 OFERTA IMPERDÍVEL 🔥
 
 🖥️ {produto}
@@ -73,15 +77,13 @@ mensagem = f"""
 💰 Preço: R$ {preco}
 """
 
+    if preco_antigo:
+        mensagem += f"\n💸 Preço anterior: R$ {preco_antigo}"
 
-if preco_antigo:
-    mensagem += f"\n💸 Preço anterior: R$ {preco_antigo}"
+    if desconto:
+        mensagem += f"\n📉 Desconto: {desconto}%"
 
-if desconto:
-    mensagem += f"\n📉 Desconto: {desconto}%"
-
-mensagem += f"""
-
+    mensagem += f"""
 
 ━━━━━━━━━━━━━━━
 
@@ -92,16 +94,16 @@ mensagem += f"""
 #promocao #hardware #oferta
 """
 
+    enviar_telegram(mensagem)
 
-enviar_telegram(mensagem)
+    sheet.update_cell(i, 5, "ENVIADO")
 
-sheet.update_cell(i, 5, "ENVIADO")
+    data_postagem = datetime.now(
+        ZoneInfo("America/Fortaleza")
+    ).strftime("%d/%m/%Y %H:%M")
 
-data_postagem = datetime.now(
-    ZoneInfo("America/Fortaleza")
-).strftime("%d/%m/%Y %H:%M")
+    sheet.update_cell(i, 12, data_postagem)
 
-sheet.update_cell(i, 12, data_postagem)
-
+    posts_enviados += 1
 
 
