@@ -78,9 +78,9 @@ for i, row in enumerate(data, start=2):
         continue
 
     mensagem = f"""
-🔥 OFERTA IMPERDÍVEL 🔥
+🔥 <b>OFERTA RELÂMPAGO</b> 🔥
 
-🖥️ {produto}
+🖥️ <b>{produto}</b>
 
 🏪 Loja: {loja}
 📂 Categoria: {categoria}
@@ -88,23 +88,26 @@ for i, row in enumerate(data, start=2):
 💰 Preço: R$ {preco}
 """
 
-    if preco_antigo:
-        mensagem += f"\n💸 Preço anterior: R$ {preco_antigo}"
+if preco_antigo:
+    mensagem += f"\n💸 <b>De:</b> R$ {preco_antigo}"
 
-    if desconto:
-        mensagem += f"\n📉 Desconto: {desconto}%"
+if desconto:
+    mensagem += f"\n📉 <b>Desconto:</b> {desconto}%"
 
-    mensagem += f"""
+mensagem += f"""
 
 ━━━━━━━━━━━━━━━
 
-⚠️ Oferta sujeita a alteração de preço e estoque.
+⚠️ <b>ATENÇÃO:</b> preço pode mudar a qualquer momento ou acabar rápido.
+
+⏳ <b>Estoque limitado</b> — disponível por tempo reduzido.
+
+🚀 <b>Não perca essa oportunidade</b>
 
 👉 <a href="{link}">COMPRAR AGORA</a>
 
-#promocao #hardware #oferta
+#promoção #hardware #oferta
 """
-
     enviar_telegram(mensagem)
 
     sheet.update_cell(i, 5, "ENVIADO")
