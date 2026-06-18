@@ -18,8 +18,13 @@ creds_dict = json.loads(GOOGLE_CREDENTIALS)
 creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
 client = gspread.authorize(creds)
 
-data = sheet.get_all_records()
+# 1. Primeiro conecta na planilha
 sheet = client.open_by_key(SHEET_ID).sheet1
+
+# 2. Depois pega os dados
+data = sheet.get_all_records()
+
+# 3. Ordenação por prioridade
 prioridade_ordem = {
     "ALTA": 1,
     "MEDIA": 2,
@@ -32,7 +37,6 @@ data.sort(
         3
     )
 )
-
 def enviar_telegram(texto):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     payload = {
