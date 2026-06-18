@@ -18,6 +18,7 @@ creds_dict = json.loads(GOOGLE_CREDENTIALS)
 creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
 client = gspread.authorize(creds)
 
+data = sheet.get_all_records()
 sheet = client.open_by_key(SHEET_ID).sheet1
 prioridade_ordem = {
     "ALTA": 1,
