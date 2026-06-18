@@ -81,6 +81,8 @@ enviar_telegram(mensagem)
 
 sheet.update_cell(i, 5, "ENVIADO")
 
+sheet.update_cell(i, 12, data_postagem)
+
 data_postagem = datetime.now(
     ZoneInfo("America/Fortaleza")
 ).strftime("%d/%m/%Y %H:%M")
