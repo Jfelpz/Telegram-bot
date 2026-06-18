@@ -81,6 +81,6 @@ enviar_telegram(mensagem)
 sheet.update_cell(i, 5, "ENVIADO")
 
 data_postagem = datetime.now().strftime("%d/%m/%Y %H:%M")
-sheet.update_cell(i, DATA_POSTAGEM, data_postagem)
+sheet.update_cell(i, 12, data_postagem)
 
 
