@@ -65,6 +65,17 @@ for i, row in enumerate(data, start=2):
     desconto = str(row.get("DESCONTO", "")).strip()
     loja = str(row.get("LOJA", "")).strip()
     categoria = str(row.get("CATEGORIA", "")).strip()
+    desconto_valor = str(row.get("DESCONTO", "")).replace("%", "").strip()
+    prioridade = str(row.get("PRIORIDADE", "")).strip().upper()
+    
+    if desconto_valor:
+        desconto_valor = float(desconto_valor)
+    else:
+        desconto_valor = 0
+    
+    # FILTRO DE QUALIDADE
+    if prioridade != "ALTA" and desconto_valor < 15:
+        continue
 
     mensagem = f"""
 🔥 OFERTA IMPERDÍVEL 🔥
