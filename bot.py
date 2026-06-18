@@ -48,7 +48,7 @@ def enviar_telegram(texto):
     requests.post(url, data=payload)
 
 posts_enviados = 0
-limite = 1
+limite = 1    #Quantidade de posts por hora#
 
 for i, row in enumerate(data, start=2):
 
