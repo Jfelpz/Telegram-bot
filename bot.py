@@ -2,6 +2,7 @@ import os
 import json
 import gspread
 import requests
+from datetime import datetime
 from oauth2client.service_account import ServiceAccountCredentials
 
 # Configurações
@@ -78,5 +79,8 @@ mensagem += f"""
 enviar_telegram(mensagem)
 
 sheet.update_cell(i, 5, "ENVIADO")
+
+data_postagem = datetime.now().strftime("%d/%m/%Y %H:%M")
+sheet.update_cell(i, 12, data_postagem)
 
 
