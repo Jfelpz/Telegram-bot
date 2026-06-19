@@ -54,7 +54,7 @@ def calcular_score(row):
         "PROCESSADOR",
         "SSD"
     ]
-    
+     
     if categoria in categorias_premium:
         score += 10
     
