@@ -7,96 +7,111 @@ from oauth2client.service_account import ServiceAccountCredentials
 from zoneinfo import ZoneInfo
 
 # Configurações
-
 SHEET_ID = os.getenv("SHEET_ID")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 GOOGLE_CREDENTIALS = os.getenv("GOOGLE_CREDENTIALS")
 
 # Conectar no Google Sheets
-
-scope = [
-"https://spreadsheets.google.com/feeds",
-"https://www.googleapis.com/auth/drive"
-]
-
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 creds_dict = json.loads(GOOGLE_CREDENTIALS)
-creds = ServiceAccountCredentials.from_json_keyfile_dict(
-creds_dict,
-scope
-)
-
+creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
 client = gspread.authorize(creds)
 
-# Abrir planilha
-
+# 1. Primeiro conecta na planilha
 sheet = client.open_by_key(SHEET_ID).sheet1
 
-# Ler dados
-
+# 2. Depois pega os dados
 data = sheet.get_all_records()
 
-def enviar_telegram(texto):
-url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-
-```
-payload = {
-    "chat_id": CHAT_ID,
-    "text": texto,
-    "parse_mode": "HTML",
-    "disable_web_page_preview": False
+# 3. Ordenação por prioridade
+prioridade_ordem = {
+    "ALTA": 1,
+    "MEDIA": 2,
+    "BAIXA": 3
 }
 
-requests.post(url, data=payload)
-```
+data.sort(
+    key=lambda row: prioridade_ordem.get(
+        str(row.get("PRIORIDADE", "BAIXA")).upper(),
+        3
+    )
+)
+def enviar_telegram(texto):
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": CHAT_ID,
+        "text": texto,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": False
+    }
+    requests.post(url, data=payload)
 
 posts_enviados = 0
-limite = 1  # Quantidade de posts por execução
+limite = 1    #Quantidade de posts por hora#
+
+def calcular_score(row):
+    score = 0
+
+    prioridade = str(row.get("PRIORIDADE", "")).strip().upper()
+    desconto = str(row.get("DESCONTO", "")).replace("%", "").strip()
+    categoria = str(row.get("CATEGORIA", "")).strip().upper()
+
+    try:
+        desconto = float(desconto)
+    except:
+        desconto = 0
+
+    # Prioridade
+    if prioridade == "ALTA":
+        score += 20
+    elif prioridade == "MEDIA":
+        score += 10
+    elif prioridade == "BAIXA":
+        score += 5
+
+    # Desconto
+    score += desconto
+
+    # Categorias mais procuradas
+    categorias_premium = [
+        "GPU",
+        "PLACA DE VIDEO",
+        "PROCESSADOR",
+        "SSD"
+    ]
+
+    if categoria in categorias_premium:
+        score += 10
+
+    return score
 
 for i, row in enumerate(data, start=2):
 
-```
-if posts_enviados >= limite:
-    break
+    if posts_enviados >= limite:
+        break
 
-if str(row.get("STATUS", "")).strip().upper() == "ENVIADO":
-    continue
+    if row.get("status") == "ENVIADO":
+        continue
 
-produto = row.get("PRODUTO")
-preco = row.get("PREÇO")
-link = row.get("LINK_AFILIADO")
+    produto = row.get("PRODUTO")
+    preco = row.get("PREÇO")
+    link = row.get("LINK_AFILIADO")
 
-preco_antigo = str(row.get("PREÇO_ANTIGO", "")).strip()
-desconto = str(row.get("DESCONTO", "")).strip()
-loja = str(row.get("LOJA", "")).strip()
-categoria = str(row.get("CATEGORIA", "")).strip()
+    preco_antigo = str(row.get("PREÇO_ANTIGO", "")).strip()
+    desconto = str(row.get("DESCONTO", "")).strip()
+    loja = str(row.get("LOJA", "")).strip()
+    categoria = str(row.get("CATEGORIA", "")).strip()
 
-prioridade = str(row.get("PRIORIDADE", "")).strip().upper()
+    prioridade = str(row.get("PRIORIDADE", "")).strip().upper()
+    desconto_valor = float(desconto.replace("%", "") or 0)
 
-try:
-    desconto_valor = float(
-        desconto.replace("%", "").strip() or 0
-    )
-except:
-    desconto_valor = 0
+    # 🔥 FILTRO DE QUALIDADE
+    if prioridade != "ALTA" and desconto_valor < 15:
+        continue
 
-# Data de adição
-data_adicao = str(row.get("DATA_ADIÇÃO", "")).strip()
-
-if not data_adicao:
-    data_adicao = datetime.now(
-        ZoneInfo("America/Fortaleza")
-    ).strftime("%d/%m/%Y %H:%M")
-
-    sheet.update_cell(i, 11, data_adicao)
-
-# Filtro de qualidade
-if prioridade != "ALTA" and desconto_valor < 15:
-    continue
-
-mensagem = f"""
-```
-
+    # 🔥 MENSAGEM COM GATILHOS MENTAIS
+    mensagem = f"""
 🔥 <b>OFERTA RELÂMPAGO</b> 🔥
 
 ⚡ <b>{produto}</b>
@@ -107,20 +122,17 @@ mensagem = f"""
 💰 <b>Preço atual:</b> R$ {preco}
 """
 
-```
-if preco_antigo:
-    mensagem += f"\n💸 <b>De:</b> R$ {preco_antigo}"
+    if preco_antigo:
+        mensagem += f"\n💸 <b>De:</b> R$ {preco_antigo}"
 
-if desconto:
-    mensagem += f"\n📉 <b>Desconto:</b> {desconto}"
+    if desconto:
+        mensagem += f"\n📉 <b>Desconto:</b> {desconto}"
 
-mensagem += f"""
-```
+    mensagem += f"""
 
 ━━━━━━━━━━━━━━━
 
 ⏳ <b>ATENÇÃO:</b> oferta pode acabar a qualquer momento
-
 📦 <b>Estoque limitado</b> — alta demanda
 
 🚀 <b>Não perca essa oportunidade</b>
@@ -130,18 +142,14 @@ mensagem += f"""
 #promoção #hardware #oferta
 """
 
-```
-enviar_telegram(mensagem)
+    enviar_telegram(mensagem)
 
-# STATUS = coluna 5
-sheet.update_cell(i, 5, "ENVIADO")
+    sheet.update_cell(i, 5, "ENVIADO")
 
-data_postagem = datetime.now(
-    ZoneInfo("America/Fortaleza")
-).strftime("%d/%m/%Y %H:%M")
+    data_postagem = datetime.now(
+        ZoneInfo("America/Fortaleza")
+    ).strftime("%d/%m/%Y %H:%M")
 
-# DATA_POSTAGEM = coluna 12
-sheet.update_cell(i, 12, data_postagem)
+    sheet.update_cell(i, 12, data_postagem)
 
-posts_enviados += 1
-```
+    posts_enviados += 1
