@@ -50,6 +50,42 @@ def enviar_telegram(texto):
 posts_enviados = 0
 limite = 1    #Quantidade de posts por hora#
 
+def calcular_score(row):
+    score = 0
+
+    prioridade = str(row.get("PRIORIDADE", "")).strip().upper()
+    desconto = str(row.get("DESCONTO", "")).replace("%", "").strip()
+    categoria = str(row.get("CATEGORIA", "")).strip().upper()
+
+    try:
+        desconto = float(desconto)
+    except:
+        desconto = 0
+
+    # Prioridade
+    if prioridade == "ALTA":
+        score += 20
+    elif prioridade == "MEDIA":
+        score += 10
+    elif prioridade == "BAIXA":
+        score += 5
+
+    # Desconto
+    score += desconto
+
+    # Categorias mais procuradas
+    categorias_premium = [
+        "GPU",
+        "PLACA DE VIDEO",
+        "PROCESSADOR",
+        "SSD"
+    ]
+
+    if categoria in categorias_premium:
+        score += 10
+
+    return score
+
 for i, row in enumerate(data, start=2):
 
     if posts_enviados >= limite:
