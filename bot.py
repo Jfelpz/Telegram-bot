@@ -91,7 +91,7 @@ for i, row in enumerate(data, start=2):
     if posts_enviados >= limite:
         break
 
-    if row.get("status") == "ENVIADO":
+    if row.get("STATUS") == "ENVIADO":
         continue
 
     produto = row.get("PRODUTO")
