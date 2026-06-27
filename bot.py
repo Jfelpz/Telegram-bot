@@ -31,12 +31,6 @@ prioridade_ordem = {
     "BAIXA": 3
 }
 
-data.sort(
-    key=lambda row: prioridade_ordem.get(
-        str(row.get("PRIORIDADE", "BAIXA")).upper(),
-        3
-    )
-)
 def enviar_telegram(texto):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     payload = {
@@ -104,7 +98,12 @@ for i, row in enumerate(data, start=2):
     categoria = str(row.get("CATEGORIA", "")).strip()
 
     prioridade = str(row.get("PRIORIDADE", "")).strip().upper()
-    desconto_valor = float(desconto.replace("%", "") or 0)
+    try:
+        desconto_valor = float(
+            desconto.replace("%", "").replace(",", ".")
+        )
+    except:
+        desconto_valor = 0
 
     # 🔥 FILTRO DE QUALIDADE
     if prioridade != "ALTA" and desconto_valor < 15:
