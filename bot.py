@@ -18,7 +18,7 @@ CHAT_ID = os.getenv("CHAT_ID")
 GOOGLE_CREDENTIALS = os.getenv("GOOGLE_CREDENTIALS")
 
 # ==========================
-# CONEXÃO GOOGLE SHEETS
+# GOOGLE SHEETS CONEXÃO
 # ==========================
 
 scope = [
@@ -38,29 +38,35 @@ sheet = client.open_by_key(SHEET_ID).sheet1
 config_sheet = client.open_by_key(SHEET_ID).worksheet("CONFIG")
 
 # ==========================
-# DADOS (CORREÇÃO PRINCIPAL)
+# DADOS (CORREÇÃO DEFINITIVA)
 # ==========================
 
 raw_data = sheet.get_all_records()
+
+# mantém linha real + dados juntos
 rows = list(enumerate(raw_data, start=2))
 
 # ==========================
 # CONTROLE DE TEMPO
 # ==========================
 
-INTERVALO = 1800  # 30 minutos
+INTERVALO = 1800
 
-config = {
-    row["CONFIGURAÇÃO"]: row["VALOR"]
-    for row in config_sheet.get_all_records()
-}
+config_raw = config_sheet.get_all_records()
+
+config = {}
+for row in config_raw:
+    key = str(row.get("CONFIGURAÇÃO", "")).strip()
+    value = None
+    for k, v in row.items():
+        if k.strip().upper() != "CONFIGURAÇÃO":
+            value = v
+    config[key] = value
 
 ultimo_envio = float(config.get("ULTIMO_ENVIO", 0))
 
-agora = time.time()
-
-if agora - ultimo_envio < INTERVALO:
-    print("⏳ Ainda não passaram 30 minutos desde o último envio.")
+if time.time() - ultimo_envio < INTERVALO:
+    print("⏳ Ainda não passou o intervalo.")
     exit()
 
 # ==========================
@@ -80,11 +86,10 @@ def enviar_telegram(texto):
     requests.post(url, data=payload)
 
 # ==========================
-# SCORE DAS OFERTAS
+# SCORE
 # ==========================
 
 def calcular_score(row):
-
     score = 0
 
     prioridade = str(row.get("PRIORIDADE", "")).strip().upper()
@@ -105,14 +110,7 @@ def calcular_score(row):
 
     score += desconto
 
-    categorias_premium = [
-        "GPU",
-        "PLACA DE VIDEO",
-        "PROCESSADOR",
-        "SSD"
-    ]
-
-    if categoria in categorias_premium:
+    if categoria in ["GPU", "PLACA DE VIDEO", "PROCESSADOR", "SSD"]:
         score += 10
 
     return score
@@ -121,10 +119,7 @@ def calcular_score(row):
 # ORDENAÇÃO SEGURA
 # ==========================
 
-rows.sort(
-    key=lambda x: calcular_score(x[1]),
-    reverse=True
-)
+rows.sort(key=lambda x: calcular_score(x[1]), reverse=True)
 
 # ==========================
 # ENVIO
@@ -139,7 +134,6 @@ for row_number, row in rows:
         break
 
     status = str(row.get("STATUS", "")).strip().upper()
-
     if status == "ENVIADO":
         continue
 
@@ -161,19 +155,21 @@ for row_number, row in rows:
     except:
         desconto_valor = 0
 
-    # filtro
     if prioridade != "ALTA" and desconto_valor < 15:
         continue
 
     # ======================
-    # ID AUTOMÁTICO
+    # ID (SEGURANÇA TOTAL)
     # ======================
 
     produto_id = str(row.get("ID", "")).strip()
 
     if not produto_id:
         produto_id = str(uuid.uuid4())[:8]
-        sheet.update_cell(row_number, 1, produto_id)
+
+        # 🚨 proteção contra linha inválida
+        if row_number > 1:
+            sheet.update_cell(row_number, 1, produto_id)
 
     # ======================
     # MENSAGEM
@@ -214,25 +210,27 @@ for row_number, row in rows:
     enviar_telegram(mensagem)
 
     # ======================
-    # ATUALIZA CONFIG
+    # UPDATE CONFIG (SEGURO)
     # ======================
 
     config_sheet.update_cell(1, 2, str(time.time()))
 
     # ======================
-    # MARCAR COMO ENVIADO
+    # MARCAR COMO ENVIADO (PROTEÇÃO B1)
     # ======================
 
-    sheet.update_cell(row_number, 5, "ENVIADO")
+    if row_number > 1:
+        sheet.update_cell(row_number, 5, "ENVIADO")
 
     # ======================
-    # DATA DE POSTAGEM
+    # DATA POSTAGEM
     # ======================
 
     data_postagem = datetime.now(
         ZoneInfo("America/Fortaleza")
     ).strftime("%d/%m/%Y %H:%M")
 
-    sheet.update_cell(row_number, 12, data_postagem)
+    if row_number > 1:
+        sheet.update_cell(row_number, 12, data_postagem)
 
     posts_enviados += 1
