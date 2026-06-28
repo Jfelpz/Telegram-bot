@@ -216,7 +216,7 @@ for row_number, row in rows:
         ZoneInfo("America/Fortaleza")
     ).strftime("%d/%m/%Y %H:%M")
 
-    sheet.update_cell(row_number, col["DATA POSTAGEM"], data_postagem)
+    sheet.update_cell(row_number, col["DATA_POSTAGEM"], data_postagem)
 
     # ======================
     # CONFIG UPDATE CORRIGIDO
