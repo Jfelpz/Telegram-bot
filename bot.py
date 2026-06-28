@@ -4,12 +4,12 @@ import requests
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-# ==========================
-# AUTH
-# ==========================
-
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-CHAT_ID = os.getenv("CHAT_ID")
+from config import (
+    sheet,
+    config_sheet,
+    TELEGRAM_TOKEN,
+    CHAT_ID
+)
 
 # ==========================
 # COLUNAS SEGURAS
