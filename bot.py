@@ -160,12 +160,13 @@ if not enviou_permitido:
     exit()
     
 for row_number, row in rows:
-
+    print("🔄 LENDO LINHA:", row_number)
     if enviados >= LIMITE_POSTS:
         break
 
     try:
-        status = row[col("STATUS")].strip().upper()
+        status_raw = row[col("STATUS")] or ""
+        status = str(status_raw).strip().upper()
         if status == "ENVIADO":
             continue
 
@@ -174,8 +175,9 @@ for row_number, row in rows:
         link = row[col("LINK_AFILIADO")]
         desconto = row[col("DESCONTO")]
 
-    except:
-        continue
+    except Exception as e:
+    print("❌ ERRO NA LINHA", row_number, e)
+    continue
 
     try:
         desconto_valor = float(
@@ -210,7 +212,7 @@ for row_number, row in rows:
 
 👉 <a href="{link}">COMPRAR AGORA</a>
 """
-
+    print("📤 ENVIANDO PRODUTO:", produto)
     enviar(mensagem)
 
     # ======================
