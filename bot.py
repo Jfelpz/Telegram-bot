@@ -141,7 +141,7 @@ data.sort(
 posts_enviados = 0
 limite = 1
 
-for idx, row in enumerate(data):
+for row_number, row in rows:
 
     if posts_enviados >= limite:
         break
