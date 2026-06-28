@@ -1,3 +1,4 @@
+import time
 from sheets import sheet, config_sheet
 from config import TELEGRAM_TOKEN, CHAT_ID
 import requests
