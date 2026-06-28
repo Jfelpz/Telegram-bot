@@ -176,7 +176,7 @@ for row_number, row in rows:
         desconto = row[col("DESCONTO")]
 
     except Exception as e:
-    print("❌ ERRO NA LINHA", row_number, e)
+        print("❌ ERRO NA LINHA", row_number, e)
     continue
 
     try:
