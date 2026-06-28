@@ -41,7 +41,7 @@ sheet = client.open_by_key(SHEET_ID).sheet1
 config_sheet = client.open_by_key(SHEET_ID).worksheet("CONFIG")
 
 # Dados
-data = sheet.get_all_records()
+data = list(enumerate(sheet.get_all_records(), start=2))
 
 # ==========================
 # CONTROLE DE TEMPO
