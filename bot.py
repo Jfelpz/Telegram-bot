@@ -39,7 +39,7 @@ sheet = spreadsheet.worksheet("MENU")
 config_sheet = spreadsheet.worksheet("CONFIG")
 
 # ==========================
-# COLUNAS (NORMALIZADAS)
+# COLUNAS SEGURAS
 # ==========================
 
 header = sheet.row_values(1)
@@ -48,6 +48,19 @@ col = {
     str(name).strip().upper(): idx + 1
     for idx, name in enumerate(header)
 }
+
+# ==========================
+# FUNÇÃO SEGURA DE UPDATE
+# ==========================
+
+def atualizar_campo(linha, nome_coluna, valor):
+    nome_coluna = nome_coluna.strip().upper()
+
+    if nome_coluna not in col:
+        print(f"⚠️ Coluna não encontrada: {nome_coluna}")
+        return
+
+    sheet.update_cell(linha, col[nome_coluna], valor)
 
 # ==========================
 # CONFIG SEGURA
@@ -60,11 +73,7 @@ config = {}
 for row in config_values:
     if len(row) < 2:
         continue
-
-    key = str(row[0]).strip().upper()
-    value = row[1]
-
-    config[key] = value
+    config[row[0].strip().upper()] = row[1]
 
 INTERVALO_MINUTOS = int(config.get("INTERVALO_MINUTOS", 30))
 INTERVALO = INTERVALO_MINUTOS * 60
@@ -81,7 +90,7 @@ MODO_TESTE = str(config.get("MODO_TESTE", "FALSE")).upper() == "TRUE"
 agora = time.time()
 
 if not MODO_TESTE and (agora - ULTIMO_ENVIO < INTERVALO):
-    print("⏳ Intervalo ainda não atingido.")
+    print("⏳ Aguardando intervalo...")
     exit()
 
 # ==========================
@@ -148,7 +157,7 @@ def atualizar_ultimo_envio():
     values = config_sheet.get_all_values()
 
     for i, row in enumerate(values, start=1):
-        if len(row) > 0 and str(row[0]).strip().upper() == "ULTIMO_ENVIO":
+        if len(row) > 0 and row[0].strip().upper() == "ULTIMO_ENVIO":
             config_sheet.update_cell(i, 2, str(time.time()))
             return
 
@@ -164,7 +173,6 @@ for row_number, row in rows:
         break
 
     status = str(row.get("STATUS", "")).strip().upper()
-
     if status == "ENVIADO":
         continue
 
@@ -176,8 +184,6 @@ for row_number, row in rows:
         continue
 
     desconto = str(row.get("DESCONTO", "")).strip()
-    loja = str(row.get("LOJA", "")).strip()
-    categoria = str(row.get("CATEGORIA", "")).strip()
 
     try:
         desconto_valor = float(desconto.replace("%", "").replace(",", "."))
@@ -187,13 +193,16 @@ for row_number, row in rows:
     if desconto_valor < DESCONTO_MINIMO:
         continue
 
+    loja = row.get("LOJA", "")
+    categoria = row.get("CATEGORIA", "")
+
     # ======================
-    # ID
+    # ID SEGURO
     # ======================
 
     if not row.get("ID"):
         produto_id = str(uuid.uuid4())[:8]
-        sheet.update_cell(row_number, col["ID"], produto_id)
+        atualizar_campo(row_number, "ID", produto_id)
 
     # ======================
     # MENSAGEM
@@ -218,16 +227,16 @@ for row_number, row in rows:
     # STATUS
     # ======================
 
-    sheet.update_cell(row_number, col["STATUS"], "ENVIADO")
+    atualizar_campo(row_number, "STATUS", "ENVIADO")
 
     data_postagem = datetime.now(
         ZoneInfo("America/Fortaleza")
     ).strftime("%d/%m/%Y %H:%M")
 
-    sheet.update_cell(row_number, col["DATA_POSTAGEM"], data_postagem)
+    atualizar_campo(row_number, "DATA POSTAGEM", data_postagem)
 
     # ======================
-    # CONFIG UPDATE
+    # CONFIG
     # ======================
 
     atualizar_ultimo_envio()
