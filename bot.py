@@ -150,7 +150,7 @@ for row_number, row in rows:
     # DATA
     sheet.update_cell(
         row_number,
-        find_col("DATA POSTAGEM") + 1,
+        find_col("DATA_POSTAGEM") + 1,
         datetime.now(ZoneInfo("America/Fortaleza")).strftime("%d/%m/%Y %H:%M")
     )
 
