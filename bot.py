@@ -140,18 +140,24 @@ for row_number, row in rows:
         break
 
     try:
-        status_raw = row[col("STATUS")] or ""
-        status = str(status_raw).strip().upper()
-        if status == "ENVIADO":
-            continue
+    status_raw = row[col("STATUS")] or ""
+    status = str(status_raw).strip().upper()
 
-        produto = row[col("PRODUTO")]
-        preco = row[col("PREÇO")]
-        link = row[col("LINK_AFILIADO")]
-        desconto = row[col("DESCONTO")]
+    print("STATUS:", status)
 
-    except Exception as e:
-        print("❌ ERRO NA LINHA", row_number, e)
+    if status == "ENVIADO":
+        print("⛔ PULADO: já enviado")
+        continue
+
+    produto = row[col("PRODUTO")]
+    preco = row[col("PREÇO")]
+    link = row[col("LINK_AFILIADO")]
+    desconto = row[col("DESCONTO")]
+
+    print("📦 PRODUTO OK:", produto)
+
+except Exception as e:
+    print("❌ ERRO NA LINHA", row_number, e)
     continue
 
     try:
