@@ -44,27 +44,32 @@ def find_col(name):
     return header.index(name.strip().upper())
 
 # ==========================
-# CONFIG (ROBUSTA)
+# CONFIG (BLINDADA)
 # ==========================
 
 def safe_int(value):
     try:
-        return int(float(str(value).replace(".", "").replace(",", "")))
+        return int(str(value).replace(".", "").replace(",", "").strip())
     except:
         return 0
 
 def load_config():
     values = config_sheet.get_all_values()
-    return {
-        row[0].strip().upper(): row[1]
-        for row in values
-        if len(row) >= 2
-    }
+    cfg = {}
+
+    for row in values:
+        if len(row) < 2:
+            continue
+        key = row[0].strip().upper()
+        val = row[1]
+        cfg[key] = val
+
+    return cfg
 
 config = load_config()
 
-INTERVALO = int(config.get("INTERVALO_MINUTOS", 30)) * 60
 ULTIMO_ENVIO = safe_int(config.get("ULTIMO_ENVIO", 0))
+INTERVALO = int(config.get("INTERVALO_MINUTOS", 30)) * 60
 LIMITE_POSTS = int(config.get("LIMITE_POSTS", 1))
 DESCONTO_MINIMO = float(config.get("DESCONTO_MINIMO", 15))
 MODO_TESTE = str(config.get("MODO_TESTE", "FALSE")).upper() == "TRUE"
@@ -76,7 +81,7 @@ MODO_TESTE = str(config.get("MODO_TESTE", "FALSE")).upper() == "TRUE"
 agora = int(time.time())
 
 if not MODO_TESTE and (agora - ULTIMO_ENVIO < INTERVALO):
-    print("⏳ Aguardando intervalo")
+    print("⏳ Aguardando intervalo...")
     exit()
 
 # ==========================
@@ -95,7 +100,7 @@ def enviar(msg):
     )
 
 # ==========================
-# DADOS MENU
+# DADOS
 # ==========================
 
 values = sheet.get_all_values()
@@ -131,10 +136,14 @@ for row_number, row in rows:
         continue
 
     try:
-        if float(desconto.replace("%", "").replace(",", ".")) < DESCONTO_MINIMO:
-            continue
+        desconto_valor = float(
+            desconto.replace("%", "").replace(",", ".")
+        )
     except:
-        pass
+        desconto_valor = 0
+
+    if desconto_valor < DESCONTO_MINIMO:
+        continue
 
     # ======================
     # ID
@@ -175,7 +184,7 @@ for row_number, row in rows:
     )
 
     # ======================
-    # CONFIG FIX DEFINITIVO
+    # CONFIG (CORREÇÃO FINAL)
     # ======================
 
     config_sheet.update_cell(
