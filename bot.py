@@ -57,22 +57,59 @@ def load_config():
     values = config_sheet.get_all_values()
     cfg = {}
 
-    for row in values:
+    # Ignora a primeira linha (cabeçalho)
+    for row in values[1:]:
         if len(row) < 2:
             continue
+
         key = row[0].strip().upper()
-        val = row[1]
+        val = row[1].strip()
+
         cfg[key] = val
 
     return cfg
 
 config = load_config()
 
+def set_config(chave, valor):
+    values = config_sheet.get_all_values()
+
+    # Começa na linha 2 porque a linha 1 é o cabeçalho
+    for linha, row in enumerate(values[1:], start=2):
+
+        if len(row) < 2:
+            continue
+
+        if row[0].strip().upper() == chave.strip().upper():
+
+            config_sheet.update_cell(
+                linha,
+                2,
+                str(valor)
+            )
+
+            return
+
+    raise Exception(
+        f"Configuração '{chave}' não encontrada."
+    )
+
 ULTIMO_ENVIO = safe_int(config.get("ULTIMO_ENVIO", 0))
-INTERVALO = int(config.get("INTERVALO_MINUTOS", 30)) * 60
-LIMITE_POSTS = int(config.get("LIMITE_POSTS", 1))
-DESCONTO_MINIMO = float(config.get("DESCONTO_MINIMO", 15))
-MODO_TESTE = str(config.get("MODO_TESTE", "FALSE")).upper() == "TRUE"
+INTERVALO = safe_int(config.get("INTERVALO_MINUTOS", 30)) * 60
+LIMITE_POSTS = safe_int(config.get("LIMITE_POSTS", 1))
+
+try:
+    DESCONTO_MINIMO = float(
+        str(config.get("DESCONTO_MINIMO", 15)).replace(",", ".")
+    )
+except:
+    DESCONTO_MINIMO = 15
+
+MODO_TESTE = (
+    str(config.get("MODO_TESTE", "FALSE"))
+    .strip()
+    .upper() == "TRUE"
+)
 
 # ==========================
 # CONTROLE DE TEMPO
@@ -187,10 +224,16 @@ for row_number, row in rows:
     # CONFIG (CORREÇÃO FINAL)
     # ======================
 
-    config_sheet.update_cell(
-        1,
-        2,
-        str(int(time.time()))
-    )
+    set_config(
+    "ULTIMO_ENVIO",
+    int(time.time())
+)
+
+set_config(
+    "ULTIMA_POSTAGEM",
+    datetime.now(
+        ZoneInfo("America/Fortaleza")
+    ).strftime("%d/%m/%Y %H:%M")
+)
 
     enviados += 1
