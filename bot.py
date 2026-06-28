@@ -41,7 +41,8 @@ sheet = client.open_by_key(SHEET_ID).sheet1
 config_sheet = client.open_by_key(SHEET_ID).worksheet("CONFIG")
 
 # Dados
-data = list(enumerate(sheet.get_all_records(), start=2))
+data = sheet.get_all_records()
+rows = list(enumerate(data, start=2))
 
 # ==========================
 # CONTROLE DE TEMPO
@@ -129,8 +130,8 @@ def calcular_score(row):
 
 # Ordena pelas melhores ofertas
 
-data.sort(
-    key=calcular_score,
+rows.sort(
+    key=lambda x: calcular_score(x[1]),
     reverse=True
 )
 
@@ -141,7 +142,7 @@ data.sort(
 posts_enviados = 0
 limite = 1
 
-for row_number, row in data:
+for row_number, row in rows:
 
     if posts_enviados >= limite:
         break
