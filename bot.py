@@ -47,8 +47,14 @@ def col_index(name):
     return header.index(name) + 1
 
 # ==========================
-# CONFIG
+# CONFIG (ROBUSTA)
 # ==========================
+
+def safe_int(value):
+    try:
+        return int(str(value).replace(".", "").replace(",", "").strip())
+    except:
+        return 0
 
 config = {
     row[0].strip().upper(): row[1]
@@ -57,7 +63,7 @@ config = {
 }
 
 INTERVALO = int(config.get("INTERVALO_MINUTOS", 30)) * 60
-ULTIMO_ENVIO = float(config.get("ULTIMO_ENVIO", 0))
+ULTIMO_ENVIO = safe_int(config.get("ULTIMO_ENVIO", 0))
 LIMITE_POSTS = int(config.get("LIMITE_POSTS", 1))
 DESCONTO_MINIMO = float(config.get("DESCONTO_MINIMO", 15))
 MODO_TESTE = str(config.get("MODO_TESTE", "FALSE")).upper() == "TRUE"
@@ -81,7 +87,7 @@ def enviar(msg):
     )
 
 # ==========================
-# LINHAS REAIS (CORRETO AGORA)
+# LINHAS REAIS
 # ==========================
 
 values = sheet.get_all_values()
@@ -93,8 +99,7 @@ def find_col(name):
 rows = []
 
 for i in range(1, len(values)):
-    row = values[i]
-    rows.append((i + 1, row))  # linha real do Sheets
+    rows.append((i + 1, values[i]))
 
 # ==========================
 # ENVIO
@@ -126,11 +131,19 @@ for row_number, row in rows:
     except:
         pass
 
-    # ID seguro
+    # ======================
+    # ID
+    # ======================
+
     id_col = find_col("ID")
+
     if not row[id_col]:
         produto_id = str(uuid.uuid4())[:8]
         sheet.update_cell(row_number, id_col + 1, produto_id)
+
+    # ======================
+    # MENSAGEM
+    # ======================
 
     mensagem = f"""
 🔥 <b>OFERTA RELÂMPAGO</b> 🔥
@@ -144,22 +157,27 @@ for row_number, row in rows:
 
     enviar(mensagem)
 
+    # ======================
     # STATUS
+    # ======================
+
     sheet.update_cell(row_number, find_col("STATUS") + 1, "ENVIADO")
 
-    # DATA
     sheet.update_cell(
         row_number,
         find_col("DATA_POSTAGEM") + 1,
         datetime.now(ZoneInfo("America/Fortaleza")).strftime("%d/%m/%Y %H:%M")
     )
 
-    # CONFIG SAFE
+    # ======================
+    # CONFIG (SAFE FINAL FIX)
+    # ======================
+
     config_values = config_sheet.get_all_values()
 
     for i, r in enumerate(config_values, start=1):
         if r[0].strip().upper() == "ULTIMO_ENVIO":
-            config_sheet.update_cell(i, 2, str(time.time()))
+            config_sheet.update_cell(i, 2, str(int(time.time())))
             break
 
     enviados += 1
