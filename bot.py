@@ -117,8 +117,10 @@ MODO_TESTE = (
 agora = int(time.time())
 
 if not MODO_TESTE and (agora - ULTIMO_ENVIO < INTERVALO):
-    print("⏳ Aguardando intervalo...")
-    exit()
+    print("⏳ Intervalo ativo, mas script continua sem enviar.")
+    enviou_permitido = False
+else:
+    enviou_permitido = True
 
 # ==========================
 # TELEGRAM
@@ -153,6 +155,10 @@ rows = [(i + 1, values[i]) for i in range(1, len(values))]
 
 enviados = 0
 
+if not enviou_permitido:
+    print("⏳ Bloqueado pelo intervalo de tempo.")
+    exit()
+    
 for row_number, row in rows:
 
     if enviados >= LIMITE_POSTS:
