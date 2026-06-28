@@ -1,16 +1,6 @@
-import uuid
-import time
+from sheets import sheet, config_sheet
+from config import TELEGRAM_TOKEN, CHAT_ID
 import requests
-from datetime import datetime
-from zoneinfo import ZoneInfo
-
-from config import (
-    sheet,
-    config_sheet,
-    TELEGRAM_TOKEN,
-    CHAT_ID
-)
-
 # ==========================
 # COLUNAS SEGURAS
 # ==========================
