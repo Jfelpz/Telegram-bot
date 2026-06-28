@@ -18,7 +18,7 @@ CHAT_ID = os.getenv("CHAT_ID")
 GOOGLE_CREDENTIALS = os.getenv("GOOGLE_CREDENTIALS")
 
 # ==========================
-# CONECTAR GOOGLE SHEETS
+# CONEXÃO GOOGLE SHEETS
 # ==========================
 
 scope = [
@@ -34,15 +34,15 @@ creds = ServiceAccountCredentials.from_json_keyfile_dict(
 
 client = gspread.authorize(creds)
 
-# Planilha principal
 sheet = client.open_by_key(SHEET_ID).sheet1
-
-# Aba de configuração
 config_sheet = client.open_by_key(SHEET_ID).worksheet("CONFIG")
 
-# Dados
-data = sheet.get_all_records()
-rows = list(enumerate(data, start=2))
+# ==========================
+# DADOS (CORREÇÃO PRINCIPAL)
+# ==========================
+
+raw_data = sheet.get_all_records()
+rows = list(enumerate(raw_data, start=2))
 
 # ==========================
 # CONTROLE DE TEMPO
@@ -68,7 +68,6 @@ if agora - ultimo_envio < INTERVALO:
 # ==========================
 
 def enviar_telegram(texto):
-
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
 
     payload = {
@@ -88,17 +87,9 @@ def calcular_score(row):
 
     score = 0
 
-    prioridade = str(
-        row.get("PRIORIDADE", "")
-    ).strip().upper()
-
-    desconto = str(
-        row.get("DESCONTO", "")
-    ).replace("%", "").replace(",", ".").strip()
-
-    categoria = str(
-        row.get("CATEGORIA", "")
-    ).strip().upper()
+    prioridade = str(row.get("PRIORIDADE", "")).strip().upper()
+    desconto = str(row.get("DESCONTO", "")).replace("%", "").replace(",", ".").strip()
+    categoria = str(row.get("CATEGORIA", "")).strip().upper()
 
     try:
         desconto = float(desconto)
@@ -107,10 +98,8 @@ def calcular_score(row):
 
     if prioridade == "ALTA":
         score += 20
-
     elif prioridade == "MEDIA":
         score += 10
-
     else:
         score += 5
 
@@ -128,7 +117,9 @@ def calcular_score(row):
 
     return score
 
-# Ordena pelas melhores ofertas
+# ==========================
+# ORDENAÇÃO SEGURA
+# ==========================
 
 rows.sort(
     key=lambda x: calcular_score(x[1]),
@@ -147,9 +138,7 @@ for row_number, row in rows:
     if posts_enviados >= limite:
         break
 
-    status = str(
-        row.get("STATUS", "")
-    ).strip().upper()
+    status = str(row.get("STATUS", "")).strip().upper()
 
     if status == "ENVIADO":
         continue
@@ -161,35 +150,18 @@ for row_number, row in rows:
     if not produto or not link:
         continue
 
-    preco_antigo = str(
-        row.get("PREÇO_ANTIGO", "")
-    ).strip()
-
-    desconto = str(
-        row.get("DESCONTO", "")
-    ).strip()
-
-    loja = str(
-        row.get("LOJA", "")
-    ).strip()
-
-    categoria = str(
-        row.get("CATEGORIA", "")
-    ).strip()
-
-    prioridade = str(
-        row.get("PRIORIDADE", "")
-    ).strip().upper()
+    preco_antigo = str(row.get("PREÇO_ANTIGO", "")).strip()
+    desconto = str(row.get("DESCONTO", "")).strip()
+    loja = str(row.get("LOJA", "")).strip()
+    categoria = str(row.get("CATEGORIA", "")).strip()
+    prioridade = str(row.get("PRIORIDADE", "")).strip().upper()
 
     try:
-        desconto_valor = float(
-            desconto.replace("%", "").replace(",", ".")
-        )
+        desconto_valor = float(desconto.replace("%", "").replace(",", "."))
     except:
         desconto_valor = 0
 
-    # Filtro
-
+    # filtro
     if prioridade != "ALTA" and desconto_valor < 15:
         continue
 
@@ -197,19 +169,11 @@ for row_number, row in rows:
     # ID AUTOMÁTICO
     # ======================
 
-    produto_id = str(
-        row.get("ID", "")
-    ).strip()
+    produto_id = str(row.get("ID", "")).strip()
 
     if not produto_id:
-
         produto_id = str(uuid.uuid4())[:8]
-
-        sheet.update_cell(
-            row_number,
-            1,
-            produto_id
-        )
+        sheet.update_cell(row_number, 1, produto_id)
 
     # ======================
     # MENSAGEM
@@ -249,30 +213,26 @@ for row_number, row in rows:
 
     enviar_telegram(mensagem)
 
-    # Atualiza horário do último envio
-    config_sheet.update_cell(
-        1,
-        2,
-        str(time.time())
-    )
+    # ======================
+    # ATUALIZA CONFIG
+    # ======================
 
-    # Marca como enviado
-    sheet.update_cell(
-        row_number,
-        5,
-        "ENVIADO"
-    )
+    config_sheet.update_cell(1, 2, str(time.time()))
 
-    # Data de postagem
+    # ======================
+    # MARCAR COMO ENVIADO
+    # ======================
+
+    sheet.update_cell(row_number, 5, "ENVIADO")
+
+    # ======================
+    # DATA DE POSTAGEM
+    # ======================
 
     data_postagem = datetime.now(
         ZoneInfo("America/Fortaleza")
     ).strftime("%d/%m/%Y %H:%M")
 
-    sheet.update_cell(
-        row_number,
-        12,
-        data_postagem
-    )
+    sheet.update_cell(row_number, 12, data_postagem)
 
     posts_enviados += 1
