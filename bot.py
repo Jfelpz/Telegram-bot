@@ -26,26 +26,31 @@ scope = [
     "https://www.googleapis.com/auth/drive"
 ]
 
-creds_dict = json.loads(GOOGLE_CREDENTIALS)
-creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+creds = ServiceAccountCredentials.from_json_keyfile_dict(
+    json.loads(GOOGLE_CREDENTIALS),
+    scope
+)
 
 client = gspread.authorize(creds)
 
 spreadsheet = client.open_by_key(SHEET_ID)
 
-# ⚠️ IMPORTANTE: nome EXATO da aba
 sheet = spreadsheet.worksheet("MENU")
 config_sheet = spreadsheet.worksheet("CONFIG")
 
 # ==========================
-# COLUNAS DA PLANILHA
+# COLUNAS (NORMALIZADAS)
 # ==========================
 
 header = sheet.row_values(1)
-col = {name.strip(): idx + 1 for idx, name in enumerate(header)}
+
+col = {
+    str(name).strip().upper(): idx + 1
+    for idx, name in enumerate(header)
+}
 
 # ==========================
-# CONFIG (ROBUSTA)
+# CONFIG SEGURA
 # ==========================
 
 config_values = config_sheet.get_all_values()
@@ -55,8 +60,10 @@ config = {}
 for row in config_values:
     if len(row) < 2:
         continue
+
     key = str(row[0]).strip().upper()
     value = row[1]
+
     config[key] = value
 
 INTERVALO_MINUTOS = int(config.get("INTERVALO_MINUTOS", 30))
@@ -134,7 +141,7 @@ def calcular_score(row):
 rows.sort(key=lambda x: calcular_score(x[1]), reverse=True)
 
 # ==========================
-# FUNÇÃO SEGURA CONFIG UPDATE
+# CONFIG UPDATE SEGURO
 # ==========================
 
 def atualizar_ultimo_envio():
@@ -157,6 +164,7 @@ for row_number, row in rows:
         break
 
     status = str(row.get("STATUS", "")).strip().upper()
+
     if status == "ENVIADO":
         continue
 
@@ -207,7 +215,7 @@ for row_number, row in rows:
     enviar_telegram(mensagem)
 
     # ======================
-    # ATUALIZA STATUS
+    # STATUS
     # ======================
 
     sheet.update_cell(row_number, col["STATUS"], "ENVIADO")
@@ -216,10 +224,10 @@ for row_number, row in rows:
         ZoneInfo("America/Fortaleza")
     ).strftime("%d/%m/%Y %H:%M")
 
-    sheet.update_cell(row_number, col["DATA_POSTAGEM"], data_postagem)
+    sheet.update_cell(row_number, col["DATA POSTAGEM"], data_postagem)
 
     # ======================
-    # CONFIG UPDATE CORRIGIDO
+    # CONFIG UPDATE
     # ======================
 
     atualizar_ultimo_envio()
