@@ -142,6 +142,8 @@ def enviar(msg):
 # ==========================
 
 values = sheet.get_all_values()
+print("📊 TOTAL LINHAS BRUTAS:", len(values))
+print("📊 HEADER:", values[0])
 header_row = [h.strip().upper() for h in values[0]]
 
 def col(name):
@@ -158,7 +160,8 @@ enviados = 0
 if not enviou_permitido:
     print("⏳ Bloqueado pelo intervalo de tempo.")
     exit()
-    
+print("🔁 ENTRANDO NO LOOP DE LINHAS")
+print("🔁 TOTAL ROWS:", len(rows))    
 for row_number, row in rows:
     print("🔄 LENDO LINHA:", row_number)
     if enviados >= LIMITE_POSTS:
