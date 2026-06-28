@@ -9,7 +9,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 from zoneinfo import ZoneInfo
 
 # ==========================
-# CONFIG
+# AUTH
 # ==========================
 
 SHEET_ID = os.getenv("SHEET_ID")
@@ -17,21 +17,17 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 GOOGLE_CREDENTIALS = os.getenv("GOOGLE_CREDENTIALS")
 
-# ==========================
-# GOOGLE SHEETS
-# ==========================
-
 scope = [
     "https://spreadsheets.google.com/feeds",
     "https://www.googleapis.com/auth/drive"
 ]
 
-creds = ServiceAccountCredentials.from_json_keyfile_dict(
-    json.loads(GOOGLE_CREDENTIALS),
-    scope
+client = gspread.authorize(
+    ServiceAccountCredentials.from_json_keyfile_dict(
+        json.loads(GOOGLE_CREDENTIALS),
+        scope
+    )
 )
-
-client = gspread.authorize(creds)
 
 spreadsheet = client.open_by_key(SHEET_ID)
 
@@ -42,203 +38,128 @@ config_sheet = spreadsheet.worksheet("CONFIG")
 # COLUNAS SEGURAS
 # ==========================
 
-header = sheet.row_values(1)
+header = [h.strip().upper() for h in sheet.row_values(1)]
 
-col = {
-    str(name).strip().upper(): idx + 1
-    for idx, name in enumerate(header)
+def col_index(name):
+    name = name.strip().upper()
+    if name not in header:
+        raise Exception(f"Coluna não existe: {name}")
+    return header.index(name) + 1
+
+# ==========================
+# CONFIG
+# ==========================
+
+config = {
+    row[0].strip().upper(): row[1]
+    for row in config_sheet.get_all_values()
+    if len(row) >= 2
 }
 
-# ==========================
-# FUNÇÃO SEGURA DE UPDATE
-# ==========================
-
-def atualizar_campo(linha, nome_coluna, valor):
-    nome_coluna = nome_coluna.strip().upper()
-
-    if nome_coluna not in col:
-        print(f"⚠️ Coluna não encontrada: {nome_coluna}")
-        return
-
-    sheet.update_cell(linha, col[nome_coluna], valor)
-
-# ==========================
-# CONFIG SEGURA
-# ==========================
-
-config_values = config_sheet.get_all_values()
-
-config = {}
-
-for row in config_values:
-    if len(row) < 2:
-        continue
-    config[row[0].strip().upper()] = row[1]
-
-INTERVALO_MINUTOS = int(config.get("INTERVALO_MINUTOS", 30))
-INTERVALO = INTERVALO_MINUTOS * 60
-
+INTERVALO = int(config.get("INTERVALO_MINUTOS", 30)) * 60
+ULTIMO_ENVIO = float(config.get("ULTIMO_ENVIO", 0))
 LIMITE_POSTS = int(config.get("LIMITE_POSTS", 1))
 DESCONTO_MINIMO = float(config.get("DESCONTO_MINIMO", 15))
-ULTIMO_ENVIO = float(config.get("ULTIMO_ENVIO", 0))
 MODO_TESTE = str(config.get("MODO_TESTE", "FALSE")).upper() == "TRUE"
 
-# ==========================
-# CONTROLE DE TEMPO
-# ==========================
-
-agora = time.time()
-
-if not MODO_TESTE and (agora - ULTIMO_ENVIO < INTERVALO):
-    print("⏳ Aguardando intervalo...")
+if not MODO_TESTE and (time.time() - ULTIMO_ENVIO < INTERVALO):
+    print("⏳ Aguardando intervalo")
     exit()
-
-# ==========================
-# DADOS
-# ==========================
-
-raw_data = sheet.get_all_records()
-rows = list(enumerate(raw_data, start=2))
 
 # ==========================
 # TELEGRAM
 # ==========================
 
-def enviar_telegram(texto):
-    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-
-    requests.post(url, data={
-        "chat_id": CHAT_ID,
-        "text": texto,
-        "parse_mode": "HTML",
-        "disable_web_page_preview": False
-    })
-
-# ==========================
-# SCORE
-# ==========================
-
-def calcular_score(row):
-    score = 0
-
-    prioridade = str(row.get("PRIORIDADE", "")).upper()
-    desconto = str(row.get("DESCONTO", "")).replace("%", "").replace(",", ".")
-
-    try:
-        desconto = float(desconto)
-    except:
-        desconto = 0
-
-    if prioridade == "ALTA":
-        score += 20
-    elif prioridade == "MEDIA":
-        score += 10
-    else:
-        score += 5
-
-    score += desconto
-
-    if str(row.get("CATEGORIA", "")).upper() in ["GPU", "PLACA DE VIDEO", "PROCESSADOR", "SSD"]:
-        score += 10
-
-    return score
+def enviar(msg):
+    requests.post(
+        f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
+        data={
+            "chat_id": CHAT_ID,
+            "text": msg,
+            "parse_mode": "HTML"
+        }
+    )
 
 # ==========================
-# ORDENAR
+# LINHAS REAIS (CORRETO AGORA)
 # ==========================
 
-rows.sort(key=lambda x: calcular_score(x[1]), reverse=True)
+values = sheet.get_all_values()
+header_row = [h.strip().upper() for h in values[0]]
 
-# ==========================
-# CONFIG UPDATE SEGURO
-# ==========================
+def find_col(name):
+    return header_row.index(name.strip().upper())
 
-def atualizar_ultimo_envio():
-    values = config_sheet.get_all_values()
+rows = []
 
-    for i, row in enumerate(values, start=1):
-        if len(row) > 0 and row[0].strip().upper() == "ULTIMO_ENVIO":
-            config_sheet.update_cell(i, 2, str(time.time()))
-            return
+for i in range(1, len(values)):
+    row = values[i]
+    rows.append((i + 1, row))  # linha real do Sheets
 
 # ==========================
 # ENVIO
 # ==========================
 
-posts_enviados = 0
+enviados = 0
 
 for row_number, row in rows:
 
-    if posts_enviados >= LIMITE_POSTS:
+    if enviados >= LIMITE_POSTS:
         break
 
-    status = str(row.get("STATUS", "")).strip().upper()
-    if status == "ENVIADO":
+    try:
+        status = row[find_col("STATUS")].strip().upper()
+        if status == "ENVIADO":
+            continue
+
+        produto = row[find_col("PRODUTO")]
+        preco = row[find_col("PREÇO")]
+        link = row[find_col("LINK_AFILIADO")]
+        desconto = row[find_col("DESCONTO")]
+
+    except:
         continue
-
-    produto = row.get("PRODUTO")
-    preco = row.get("PREÇO")
-    link = row.get("LINK_AFILIADO")
-
-    if not produto or not link:
-        continue
-
-    desconto = str(row.get("DESCONTO", "")).strip()
 
     try:
-        desconto_valor = float(desconto.replace("%", "").replace(",", "."))
+        if float(desconto.replace("%", "").replace(",", ".")) < DESCONTO_MINIMO:
+            continue
     except:
-        desconto_valor = 0
+        pass
 
-    if desconto_valor < DESCONTO_MINIMO:
-        continue
-
-    loja = row.get("LOJA", "")
-    categoria = row.get("CATEGORIA", "")
-
-    # ======================
-    # ID SEGURO
-    # ======================
-
-    if not row.get("ID"):
+    # ID seguro
+    id_col = find_col("ID")
+    if not row[id_col]:
         produto_id = str(uuid.uuid4())[:8]
-        atualizar_campo(row_number, "ID", produto_id)
-
-    # ======================
-    # MENSAGEM
-    # ======================
+        sheet.update_cell(row_number, id_col + 1, produto_id)
 
     mensagem = f"""
 🔥 <b>OFERTA RELÂMPAGO</b> 🔥
 
 ⚡ <b>{produto}</b>
 
-🏪 Loja: {loja}
-📂 Categoria: {categoria}
+💰 R$ {preco}
 
-💰 <b>Preço:</b> R$ {preco}
-
-👉 <a href="{link}">🔥 COMPRAR AGORA 🔥</a>
+👉 <a href="{link}">COMPRAR</a>
 """
 
-    enviar_telegram(mensagem)
+    enviar(mensagem)
 
-    # ======================
     # STATUS
-    # ======================
+    sheet.update_cell(row_number, find_col("STATUS") + 1, "ENVIADO")
 
-    atualizar_campo(row_number, "STATUS", "ENVIADO")
+    # DATA
+    sheet.update_cell(
+        row_number,
+        find_col("DATA POSTAGEM") + 1,
+        datetime.now(ZoneInfo("America/Fortaleza")).strftime("%d/%m/%Y %H:%M")
+    )
 
-    data_postagem = datetime.now(
-        ZoneInfo("America/Fortaleza")
-    ).strftime("%d/%m/%Y %H:%M")
+    # CONFIG SAFE
+    config_values = config_sheet.get_all_values()
 
-    atualizar_campo(row_number, "DATA POSTAGEM", data_postagem)
+    for i, r in enumerate(config_values, start=1):
+        if r[0].strip().upper() == "ULTIMO_ENVIO":
+            config_sheet.update_cell(i, 2, str(time.time()))
+            break
 
-    # ======================
-    # CONFIG
-    # ======================
-
-    atualizar_ultimo_envio()
-
-    posts_enviados += 1
+    enviados += 1
