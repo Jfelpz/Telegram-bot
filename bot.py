@@ -216,6 +216,11 @@ for row_number, row in rows:
     # ATUALIZA ULTIMO ENVIO
     # ======================
 
-    config_sheet.update_cell(1, 2, str(time.time()))
+    config_data = config_sheet.get_all_values()
+
+for i, row in enumerate(config_data, start=1):
+    if row[0].strip().upper() == "ULTIMO_ENVIO":
+        config_sheet.update_cell(i, 2, str(time.time()))
+        break
 
     posts_enviados += 1
