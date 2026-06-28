@@ -235,4 +235,4 @@ set_config(
     ).strftime("%d/%m/%Y %H:%M")
 )
 
-    enviados += 1
+enviados += 1
