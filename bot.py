@@ -141,12 +141,10 @@ data.sort(
 posts_enviados = 0
 limite = 1
 
-for row_number, row in rows:
+for row_number, row in data:
 
     if posts_enviados >= limite:
         break
-
-    row_number = idx + 2
 
     status = str(
         row.get("STATUS", "")
