@@ -1,7 +1,11 @@
+import os
 import time
+import uuid
+import requests
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from sheets import sheet, config_sheet
 from config import TELEGRAM_TOKEN, CHAT_ID
-import requests
 # ==========================
 # COLUNAS SEGURAS
 # ==========================
