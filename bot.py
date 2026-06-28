@@ -38,7 +38,7 @@ client = gspread.authorize(creds)
 sheet = client.open_by_key(SHEET_ID).sheet1
 
 # Aba de configuração
-config_sheet = client.open_by_key(SHEET_ID).worksheet("config")
+config_sheet = client.open_by_key(SHEET_ID).worksheet("CONFIG")
 
 # Dados
 data = sheet.get_all_records()
