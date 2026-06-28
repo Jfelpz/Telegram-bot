@@ -34,7 +34,7 @@ client = gspread.authorize(creds)
 spreadsheet = client.open_by_key(SHEET_ID)
 
 # ⚠️ IMPORTANTE: nome EXATO da aba
-sheet = spreadsheet.worksheet("PROMOÇÕES AMAZON")
+sheet = spreadsheet.worksheet("MENU")
 config_sheet = spreadsheet.worksheet("CONFIG")
 
 # ==========================
