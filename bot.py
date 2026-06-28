@@ -110,7 +110,6 @@ MODO_TESTE = (
     .strip()
     .upper() == "TRUE"
 )
-
 # ==========================
 # CONTROLE DE TEMPO
 # ==========================
