@@ -1,7 +1,7 @@
 import os
 import time
 import uuid
-import requests
+from telegram import enviar
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from sheets import sheet, config_sheet
@@ -95,21 +95,6 @@ else:
     enviou_permitido = True
 
 # ==========================
-# TELEGRAM
-# ==========================
-
-def enviar(msg):
-    requests.post(
-        f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
-        data={
-            "chat_id": CHAT_ID,
-            "text": msg,
-            "parse_mode": "HTML",
-            "disable_web_page_preview": False
-        }
-    )
-
-# ==========================
 # DADOS
 # ==========================
 
@@ -201,3 +186,4 @@ for row_number, row in rows:
 
     enviados += 1
     break
+    enviar("🔥 TESTE TELEGRAM FUNCIONANDO")
