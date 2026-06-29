@@ -140,35 +140,35 @@ for row_number, row in rows:
         break
 
     try:
-    status_raw = row[col("STATUS")] or ""
-    status = str(status_raw).strip().upper()
+        status_raw = row[col("STATUS")] or ""
+        status = str(status_raw).strip().upper()
+    
+        print("STATUS:", status)
+    
+        if status == "ENVIADO":
+            print("⛔ PULADO: já enviado")
+            continue
+    
+        produto = row[col("PRODUTO")]
+        preco = row[col("PREÇO")]
+        link = row[col("LINK_AFILIADO")]
+        desconto = row[col("DESCONTO")]
+    
+        print("📦 PRODUTO OK:", produto)
 
-    print("STATUS:", status)
-
-    if status == "ENVIADO":
-        print("⛔ PULADO: já enviado")
+    except Exception as e:
+        print("❌ ERRO NA LINHA", row_number, e)
         continue
-
-    produto = row[col("PRODUTO")]
-    preco = row[col("PREÇO")]
-    link = row[col("LINK_AFILIADO")]
-    desconto = row[col("DESCONTO")]
-
-    print("📦 PRODUTO OK:", produto)
-
-except Exception as e:
-    print("❌ ERRO NA LINHA", row_number, e)
-    continue
-
-    try:
-        desconto_valor = float(
-            desconto.replace("%", "").replace(",", ".")
-        )
-    except:
-        desconto_valor = 0
-
-    if desconto_valor < DESCONTO_MINIMO:
-        continue
+    
+        try:
+            desconto_valor = float(
+                desconto.replace("%", "").replace(",", ".")
+            )
+        except:
+            desconto_valor = 0
+    
+        if desconto_valor < DESCONTO_MINIMO:
+            continue
 
     # ======================
     # ID
