@@ -35,10 +35,15 @@ def processar(enviar):
             preco = row[col("PREÇO")]
             link = row[col("LINK_AFILIADO")]
             desconto = row[col("DESCONTO")]
+            id_col = col("ID")
 
-        except Exception as e:
-            print("❌ ERRO LINHA", row_number, e)
-            continue
+        if not row[id_col]:
+            produto_id = str(uuid.uuid4())[:8]
+            sheet.update_cell(row_number, id_col + 1, produto_id)
+            print("🆔 ID GERADO:", produto_id)
+                except Exception as e:
+                    print("❌ ERRO LINHA", row_number, e)
+                    continue
 
         try:
             desconto_valor = float(
