@@ -196,6 +196,18 @@ for row_number, row in rows:
     print("📤 ENVIANDO PRODUTO:", produto)
     enviar(mensagem)
 
+sheet.update_cell(row_number, col("STATUS") + 1, "ENVIADO")
+
+sheet.update_cell(
+    row_number,
+    col("DATA_POSTAGEM") + 1,
+    datetime.now(ZoneInfo("America/Fortaleza")).strftime("%d/%m/%Y %H:%M")
+)
+
+enviados += 1
+
+break
+
     # ======================
     # STATUS
     # ======================
