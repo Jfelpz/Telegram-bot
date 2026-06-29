@@ -135,54 +135,36 @@ if not enviou_permitido:
 print("🔁 ENTRANDO NO LOOP DE LINHAS")
 print("🔁 TOTAL ROWS:", len(rows))    
 for row_number, row in rows:
-    print("🔄 LENDO LINHA:", row_number)
+
     if enviados >= LIMITE_POSTS:
         break
 
     try:
         status_raw = row[col("STATUS")] or ""
         status = str(status_raw).strip().upper()
-    
-        print("STATUS:", status)
-    
+
         if status == "ENVIADO":
-            print("⛔ PULADO: já enviado")
             continue
-    
+
         produto = row[col("PRODUTO")]
         preco = row[col("PREÇO")]
         link = row[col("LINK_AFILIADO")]
         desconto = row[col("DESCONTO")]
-    
-        print("📦 PRODUTO OK:", produto)
 
     except Exception as e:
         print("❌ ERRO NA LINHA", row_number, e)
         continue
-    
-        try:
-            desconto_valor = float(
-                desconto.replace("%", "").replace(",", ".")
-            )
-        except:
-            desconto_valor = 0
-    
-        if desconto_valor < DESCONTO_MINIMO:
-            continue
 
-    # ======================
-    # ID
-    # ======================
+    desconto_valor = 0
+    try:
+        desconto_valor = float(
+            desconto.replace("%", "").replace(",", ".")
+        )
+    except:
+        pass
 
-    id_col = col("ID")
-
-    if not row[id_col]:
-        produto_id = str(uuid.uuid4())[:8]
-        sheet.update_cell(row_number, id_col + 1, produto_id)
-
-    # ======================
-    # MENSAGEM
-    # ======================
+    if desconto_valor < DESCONTO_MINIMO:
+        continue
 
     mensagem = f"""
 🔥 <b>OFERTA RELÂMPAGO</b> 🔥
@@ -193,47 +175,24 @@ for row_number, row in rows:
 
 👉 <a href="{link}">COMPRAR AGORA</a>
 """
-    print("📤 ENVIANDO PRODUTO:", produto)
+
+    print("📤 ENVIANDO:", produto)
     enviar(mensagem)
 
     sheet.update_cell(row_number, col("STATUS") + 1, "ENVIADO")
-    
+
     sheet.update_cell(
         row_number,
         col("DATA_POSTAGEM") + 1,
         datetime.now(ZoneInfo("America/Fortaleza")).strftime("%d/%m/%Y %H:%M")
     )
 
-enviados += 1
+    set_config("ULTIMO_ENVIO", int(time.time()))
 
-break
+    set_config(
+        "ULTIMA_POSTAGEM",
+        datetime.now(ZoneInfo("America/Fortaleza")).strftime("%d/%m/%Y %H:%M")
+    )
 
-# ======================
-# STATUS
-# ======================
-
-sheet.update_cell(row_number, col("STATUS") + 1, "ENVIADO")
-
-sheet.update_cell(
-    row_number,
-    col("DATA_POSTAGEM") + 1,
-    datetime.now(ZoneInfo("America/Fortaleza")).strftime("%d/%m/%Y %H:%M")
-)
-
-# ======================
-# CONFIG (CORREÇÃO FINAL)
-# ======================
-
-set_config(
-    "ULTIMO_ENVIO",
-    int(time.time())
-)
-
-set_config(
-    "ULTIMA_POSTAGEM",
-    datetime.now(
-        ZoneInfo("America/Fortaleza")
-    ).strftime("%d/%m/%Y %H:%M")
-)
-
-enviados += 1
+    enviados += 1
+    break
