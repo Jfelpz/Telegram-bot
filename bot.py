@@ -135,7 +135,12 @@ if not enviou_permitido:
 print("🔁 ENTRANDO NO LOOP DE LINHAS")
 print("🔁 TOTAL ROWS:", len(rows))    
 for row_number, row in rows:
-
+    print("----- LINHA -----")
+    print("ROW:", row_number)
+    print("LINHA COMPLETA:", row)
+    print("STATUS RAW:", row[col("STATUS")])
+    print("DESCONTO RAW:", row[col("DESCONTO")])
+    print("PRODUTO:", row[col("PRODUTO")])
     if enviados >= LIMITE_POSTS:
         break
 
