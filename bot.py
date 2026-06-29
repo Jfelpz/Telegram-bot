@@ -208,23 +208,23 @@ enviados += 1
 
 break
 
-    # ======================
-    # STATUS
-    # ======================
+# ======================
+# STATUS
+# ======================
 
-    sheet.update_cell(row_number, col("STATUS") + 1, "ENVIADO")
+sheet.update_cell(row_number, col("STATUS") + 1, "ENVIADO")
 
-    sheet.update_cell(
-        row_number,
-        col("DATA_POSTAGEM") + 1,
-        datetime.now(ZoneInfo("America/Fortaleza")).strftime("%d/%m/%Y %H:%M")
-    )
+sheet.update_cell(
+    row_number,
+    col("DATA_POSTAGEM") + 1,
+    datetime.now(ZoneInfo("America/Fortaleza")).strftime("%d/%m/%Y %H:%M")
+)
 
-    # ======================
-    # CONFIG (CORREÇÃO FINAL)
-    # ======================
+# ======================
+# CONFIG (CORREÇÃO FINAL)
+# ======================
 
-    set_config(
+set_config(
     "ULTIMO_ENVIO",
     int(time.time())
 )
