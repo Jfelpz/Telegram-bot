@@ -62,3 +62,13 @@ def registrar_coleta(sheet, row_number, col_ultima, col_intervalo):
         col_intervalo,
         intervalo
     )
+if __name__ == "__main__":
+
+    print("Intervalo:", gerar_intervalo())
+
+    print(
+        precisa_coletar(
+            "",
+            ""
+        )
+    )
