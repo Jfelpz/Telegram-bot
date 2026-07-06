@@ -64,11 +64,22 @@ def registrar_coleta(sheet, row_number, col_ultima, col_intervalo):
     )
 if __name__ == "__main__":
 
-    print("Intervalo:", gerar_intervalo())
+    print("=== TESTE CACHE ===")
+
+    intervalo = gerar_intervalo()
+    print("Intervalo gerado:", intervalo)
 
     print(
-        precisa_coletar(
-            "",
-            ""
-        )
+        "Sem data:",
+        precisa_coletar("", "")
+    )
+
+    print(
+        "Data inválida:",
+        precisa_coletar("abc", "10")
+    )
+
+    print(
+        "Intervalo inválido:",
+        precisa_coletar("06/07/2026 10:00", "")
     )
