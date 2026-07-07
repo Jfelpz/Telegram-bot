@@ -1,19 +1,22 @@
 import json
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+
+from google.oauth2.service_account import Credentials
+
 from config import SHEET_ID, GOOGLE_CREDENTIALS
 
-scope = [
-    "https://spreadsheets.google.com/feeds",
-    "https://www.googleapis.com/auth/drive"
+
+SCOPES = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive",
 ]
 
-client = gspread.authorize(
-    ServiceAccountCredentials.from_json_keyfile_dict(
-        json.loads(GOOGLE_CREDENTIALS),
-        scope
-    )
+credentials = Credentials.from_service_account_info(
+    json.loads(GOOGLE_CREDENTIALS),
+    scopes=SCOPES
 )
+
+client = gspread.authorize(credentials)
 
 spreadsheet = client.open_by_key(SHEET_ID)
 
