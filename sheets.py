@@ -7,7 +7,7 @@ from config import SHEET_ID, GOOGLE_CREDENTIALS
 
 
 # ==================================================
-# CONFIGURAÇÃO GOOGLE
+# CONFIGURAÇÃO GOOGLE SHEETS
 # ==================================================
 
 SCOPES = [
@@ -40,8 +40,8 @@ config_sheet = spreadsheet.worksheet("CONFIG")
 def carregar_produtos():
 
     """
-    Retorna todos os produtos da aba MENU
-    como lista de dicionários.
+    Retorna todos os produtos da aba MENU.
+    Cada linha vira um dicionário.
     """
 
     return sheet.get_all_records()
@@ -49,14 +49,14 @@ def carregar_produtos():
 
 
 # ==================================================
-# MAPEAR COLUNAS AUTOMATICAMENTE
+# LOCALIZAR COLUNAS
 # ==================================================
 
 def carregar_colunas():
 
     """
-    Encontra as posições das colunas pelo nome.
-    Evita depender de posição fixa.
+    Busca as colunas pelo nome.
+    Evita depender da posição fixa.
     """
 
     cabecalhos = sheet.row_values(1)
@@ -64,24 +64,16 @@ def carregar_colunas():
 
     colunas = {
 
-        "preco":
-            cabecalhos.index("PREÇO") + 1,
-
-
-        "preco_antigo":
-            cabecalhos.index("PREÇO_ANTIGO") + 1,
-
-
-        "ultima_atualizacao":
-            cabecalhos.index("ULTIMA_ATUALIZAÇÃO") + 1,
-
-
         "ultima_coleta_api":
-            cabecalhos.index("ULTIMA_COLETA_API") + 1,
+            cabecalhos.index(
+                "ULTIMA_COLETA_API"
+            ) + 1,
 
 
         "intervalo_api":
-            cabecalhos.index("INTERVALO_COLETA_API") + 1,
+            cabecalhos.index(
+                "INTERVALO_COLETA_API"
+            ) + 1,
 
     }
 
@@ -91,28 +83,20 @@ def carregar_colunas():
 
 
 # ==================================================
-# TESTE DE CONEXÃO
+# TESTE
 # ==================================================
 
 if __name__ == "__main__":
 
-
-    print("Conectado ao Google Sheets")
-
+    print("Google Sheets conectado.")
 
     produtos = carregar_produtos()
-
 
     print(
         f"Produtos encontrados: {len(produtos)}"
     )
 
 
-    colunas = carregar_colunas()
-
-
     print(
-        "Colunas:"
+        carregar_colunas()
     )
-
-    print(colunas)
