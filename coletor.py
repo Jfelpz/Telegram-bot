@@ -1,100 +1,220 @@
 import random
+
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 from cache import precisa_coletar, registrar_coleta
 from config import MAX_COLETAS
 
 
-# ---------------------------------------------------
-# SIMULAÇÃO / FUTURO AMAPULSE
-# ---------------------------------------------------
+FUSO = ZoneInfo("America/Fortaleza")
+
+
+# ==================================================
+# AMAPULSE FUTURO
+# ==================================================
+
 def atualizar_produto(produto):
+    """
+    Futuramente será substituído pelo Amapulse.
+    Retorna o preço encontrado na API.
+    """
 
     try:
-        preco = float(produto.get("preco_atual", 100))
+        preco_atual = float(
+            produto.get("PREÇO", 100)
+        )
+
     except:
-        preco = 100
-
-    produto["preco_atual"] = preco - random.randint(1, 20)
-
-    return produto
+        preco_atual = 100
 
 
-# ---------------------------------------------------
-# VALIDAÇÃO DE DADOS
-# ---------------------------------------------------
-def produto_valido(produto):
-    """
-    Evita crash por linha vazia ou dados quebrados
-    """
-
-    if not produto:
-        return False
-
-    if "preco_atual" not in produto:
-        return False
-
-    return True
+    # simulação
+    novo_preco = preco_atual - random.randint(1, 20)
 
 
-# ---------------------------------------------------
+    return round(novo_preco, 2)
+
+
+
+# ==================================================
+# VERIFICA SE PREÇO MUDOU
+# ==================================================
+
+def preco_alterou(preco_antigo, preco_novo):
+
+    try:
+        antigo = float(preco_antigo)
+        novo = float(preco_novo)
+
+        return antigo != novo
+
+    except:
+        return True
+
+
+
+# ==================================================
+# DATA DA ALTERAÇÃO DE PREÇO
+# ==================================================
+
+def data_atualizacao():
+
+    return datetime.now(
+        FUSO
+    ).strftime(
+        "%d/%m/%Y %H:%M"
+    )
+
+
+
+# ==================================================
 # COLETOR PRINCIPAL
-# ---------------------------------------------------
-def coletar_produtos(sheet, rows, colunas):
+# ==================================================
+
+def coletar_produtos(sheet, produtos, colunas):
+
 
     print("=== INICIANDO COLETOR ===")
 
-    random.shuffle(rows)
+
+    random.shuffle(produtos)
+
 
     coletados = 0
 
-    for i, row in enumerate(rows, start=2):
+
+    for linha, produto in enumerate(produtos, start=2):
+
 
         if coletados >= MAX_COLETAS:
-            print("Limite de coleta atingido.")
+
+            print(
+                "Limite de coletas atingido."
+            )
+
             break
 
+
+
         try:
-            ultima_coleta = row.get(colunas["ultima_coleta"], "")
-            intervalo = row.get(colunas["intervalo"], "")
 
-            # cache decide se atualiza
-            if not precisa_coletar(ultima_coleta, intervalo):
-                continue
-
-            print(f"Atualizando produto linha {i}...")
-
-            # valida produto antes de tudo
-            if not produto_valido(row):
-                print(f"Linha {i} inválida, ignorando.")
-                continue
-
-            # atualiza produto (futuro Amapulse)
-            produto_atualizado = atualizar_produto(row)
-
-            # atualiza preço
-            sheet.update_cell(
-                i,
-                colunas["preco"],
-                produto_atualizado["preco_atual"]
+            ultima_coleta_api = produto.get(
+                "ULTIMA_COLETA_API",
+                ""
             )
 
-            # registra coleta
+
+            intervalo_api = produto.get(
+                "INTERVALO_COLETA_API",
+                ""
+            )
+
+
+
+            # ===============================
+            # CACHE
+            # ===============================
+
+            if not precisa_coletar(
+                ultima_coleta_api,
+                intervalo_api
+            ):
+
+                continue
+
+
+
+            print(
+                f"Consultando produto linha {linha}"
+            )
+
+
+
+            # ===============================
+            # CONSULTA API
+            # ===============================
+
+            novo_preco = atualizar_produto(
+                produto
+            )
+
+
+
+            preco_antigo = produto.get(
+                "PREÇO",
+                ""
+            )
+
+
+
+            # ===============================
+            # PREÇO MUDOU?
+            # ===============================
+
+            if preco_alterou(
+                preco_antigo,
+                novo_preco
+            ):
+
+
+                print(
+                    "Preço alterado!"
+                )
+
+
+                # guarda preço antigo
+
+                sheet.update_cell(
+                    linha,
+                    colunas["preco_antigo"],
+                    preco_antigo
+                )
+
+
+                # atualiza preço
+
+                sheet.update_cell(
+                    linha,
+                    colunas["preco"],
+                    novo_preco
+                )
+
+
+                # registra data mudança
+
+                sheet.update_cell(
+                    linha,
+                    colunas["ultima_atualizacao"],
+                    data_atualizacao()
+                )
+
+
+
+            # ===============================
+            # SEMPRE REGISTRA CONSULTA API
+            # ===============================
+
             registrar_coleta(
                 sheet,
-                i,
-                colunas["ultima_coleta"],
-                colunas["intervalo"]
+                linha,
+                colunas["ultima_coleta_api"],
+                colunas["intervalo_api"]
             )
+
 
             coletados += 1
 
-        except Exception as e:
-            print(f"[ERRO] Linha {i}: {e}")
-
-    print(f"=== FINALIZADO | {coletados} produtos atualizados ===")
 
 
-# ---------------------------------------------------
-# TESTE LOCAL
-# ---------------------------------------------------
-if __name__ == "__main__":
-    print("Coletor pronto (modo teste).")
+        except Exception as erro:
+
+            print(
+                f"[ERRO] Linha {linha}: {erro}"
+            )
+
+
+
+    print(
+        f"=== FINALIZADO | {coletados} consultados ==="
+    )
