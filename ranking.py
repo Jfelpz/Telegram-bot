@@ -1,5 +1,11 @@
 # ranking.py
 
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+FUSO = ZoneInfo("America/Fortaleza")
+
+
 # ==================================================
 # PESOS DAS PRIORIDADES
 # ==================================================
@@ -7,7 +13,7 @@
 PESO_PRIORIDADE = {
     "ALTA": 100,
     "MÉDIA": 50,
-    "MEDIA": 50,   # Compatibilidade sem acento
+    "MEDIA": 50,
     "BAIXA": 10
 }
 
@@ -19,14 +25,26 @@ PESO_PRIORIDADE = {
 PESO_CATEGORIA = {
     "GPU": 50,
     "PLACA DE VIDEO": 50,
+    "PLACA DE VÍDEO": 50,
+
     "CPU": 45,
     "PROCESSADOR": 45,
+
     "SSD": 35,
+
     "MEMÓRIA": 25,
     "MEMORIA": 25,
     "RAM": 25,
+
     "PLACA-MÃE": 20,
-    "PLACA MAE": 20
+    "PLACA MAE": 20,
+
+    "MONITOR": 15,
+    "NOTEBOOK": 15,
+
+    "MOUSE": 5,
+    "TECLADO": 5,
+    "HEADSET": 5
 }
 
 
@@ -42,8 +60,48 @@ def desconto_para_float(valor):
             .replace("%", "")
             .replace(",", ".")
         )
+
     except:
+
         return 0
+
+
+# ==================================================
+# PONTUAÇÃO POR RECÊNCIA
+# ==================================================
+
+def calcular_bonus_recencia(data):
+
+    if not data:
+        return 0
+
+    try:
+
+        ultima = datetime.strptime(
+            data,
+            "%d/%m/%Y %H:%M"
+        ).replace(
+            tzinfo=FUSO
+        )
+
+    except:
+
+        return 0
+
+    dias = (
+        datetime.now(FUSO) - ultima
+    ).days
+
+    if dias <= 1:
+        return 10
+
+    elif dias <= 3:
+        return 7
+
+    elif dias <= 7:
+        return 4
+
+    return 0
 
 
 # ==================================================
@@ -54,9 +112,9 @@ def calcular_score(produto):
 
     score = 0
 
-    # -------------------------
+    # -----------------------------------
     # PRIORIDADE
-    # -------------------------
+    # -----------------------------------
 
     prioridade = str(
         produto.get("PRIORIDADE", "")
@@ -67,9 +125,9 @@ def calcular_score(produto):
         0
     )
 
-    # -------------------------
+    # -----------------------------------
     # CATEGORIA
-    # -------------------------
+    # -----------------------------------
 
     categoria = str(
         produto.get("CATEGORIA", "")
@@ -80,9 +138,9 @@ def calcular_score(produto):
         5
     )
 
-    # -------------------------
+    # -----------------------------------
     # DESCONTO
-    # -------------------------
+    # -----------------------------------
 
     desconto = desconto_para_float(
         produto.get("DESCONTO", 0)
@@ -90,11 +148,19 @@ def calcular_score(produto):
 
     score += desconto
 
+    # -----------------------------------
+    # RECÊNCIA DA ATUALIZAÇÃO
+    # -----------------------------------
+
+    score += calcular_bonus_recencia(
+        produto.get("ULTIMA_ATUALIZAÇÃO", "")
+    )
+
     return score
 
 
 # ==================================================
-# RANKING
+# GERA RANKING
 # ==================================================
 
 def gerar_ranking(produtos):
@@ -111,48 +177,40 @@ def gerar_ranking(produtos):
             produto.get("STATUS", "")
         ).strip().upper()
 
-        # ==================================================
+        # -----------------------------------
         # CHECKBOX ATIVO
-        # Marcada = TRUE = Produto ativo
-        # Desmarcada = FALSE = Ignora produto
-        # ==================================================
+        # TRUE = ativo
+        # FALSE = ignorado
+        # -----------------------------------
 
-        if ativo not in [
+        if ativo not in (
             "TRUE",
             "VERDADEIRO",
             "SIM",
             "1"
-        ]:
+        ):
 
             print(
-                f"⏸️ Produto ignorado (INATIVO): {produto.get('PRODUTO', '')}"
+                f"⏸ Produto inativo: {produto.get('PRODUTO','')}"
             )
 
             continue
 
-        # ==================================================
+        # -----------------------------------
         # STATUS
-        # ==================================================
+        # -----------------------------------
 
         if status == "ENVIADO":
 
             print(
-                f"📦 Produto já enviado: {produto.get('PRODUTO', '')}"
+                f"📦 Já enviado: {produto.get('PRODUTO','')}"
             )
 
             continue
 
-        # ==================================================
-        # SCORE
-        # ==================================================
-
         produto["SCORE"] = calcular_score(produto)
 
         elegiveis.append(produto)
-
-    # ==================================================
-    # ORDENA PELO SCORE
-    # ==================================================
 
     elegiveis.sort(
         key=lambda x: x["SCORE"],
@@ -175,26 +233,39 @@ if __name__ == "__main__":
             "CATEGORIA": "GPU",
             "PRIORIDADE": "ALTA",
             "DESCONTO": "15%",
+            "ATIVO": "TRUE",
             "STATUS": "",
-            "ATIVO": "TRUE"
+            "ULTIMA_ATUALIZAÇÃO": "05/07/2026 10:30"
         },
 
         {
-            "PRODUTO": "Mouse Gamer",
-            "CATEGORIA": "MOUSE",
-            "PRIORIDADE": "BAIXA",
-            "DESCONTO": "40%",
+            "PRODUTO": "Ryzen 9700X",
+            "CATEGORIA": "CPU",
+            "PRIORIDADE": "ALTA",
+            "DESCONTO": "10%",
+            "ATIVO": "TRUE",
             "STATUS": "",
-            "ATIVO": "FALSE"
+            "ULTIMA_ATUALIZAÇÃO": "04/07/2026 09:20"
         },
 
         {
             "PRODUTO": "SSD Kingston",
             "CATEGORIA": "SSD",
             "PRIORIDADE": "MÉDIA",
-            "DESCONTO": "20%",
-            "STATUS": "ENVIADO",
-            "ATIVO": "TRUE"
+            "DESCONTO": "25%",
+            "ATIVO": "TRUE",
+            "STATUS": "",
+            "ULTIMA_ATUALIZAÇÃO": "01/07/2026 08:00"
+        },
+
+        {
+            "PRODUTO": "Mouse Logitech",
+            "CATEGORIA": "MOUSE",
+            "PRIORIDADE": "BAIXA",
+            "DESCONTO": "40%",
+            "ATIVO": "FALSE",
+            "STATUS": "",
+            "ULTIMA_ATUALIZAÇÃO": "05/07/2026 12:00"
         }
 
     ]
@@ -203,8 +274,8 @@ if __name__ == "__main__":
 
     print("\n===== RANKING =====\n")
 
-    for p in ranking:
+    for produto in ranking:
 
         print(
-            f"{p['PRODUTO']} | Score: {p['SCORE']}"
+            f"{produto['PRODUTO']} | Score: {produto['SCORE']}"
         )
