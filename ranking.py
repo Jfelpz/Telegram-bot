@@ -7,7 +7,7 @@
 PESO_PRIORIDADE = {
     "ALTA": 100,
     "MÉDIA": 50,
-    "MEDIA": 50,   # evita problemas com acento
+    "MEDIA": 50,   # Compatibilidade sem acento
     "BAIXA": 10
 }
 
@@ -67,7 +67,6 @@ def calcular_score(produto):
         0
     )
 
-
     # -------------------------
     # CATEGORIA
     # -------------------------
@@ -81,7 +80,6 @@ def calcular_score(produto):
         5
     )
 
-
     # -------------------------
     # DESCONTO
     # -------------------------
@@ -91,7 +89,6 @@ def calcular_score(produto):
     )
 
     score += desconto
-
 
     return score
 
@@ -114,25 +111,53 @@ def gerar_ranking(produtos):
             produto.get("STATUS", "")
         ).strip().upper()
 
+        # ==================================================
+        # CHECKBOX ATIVO
+        # Marcada = TRUE = Produto ativo
+        # Desmarcada = FALSE = Ignora produto
+        # ==================================================
 
-        if ativo not in ["SIM", "TRUE", "1"]:
+        if ativo not in [
+            "TRUE",
+            "VERDADEIRO",
+            "SIM",
+            "1"
+        ]:
+
+            print(
+                f"⏸️ Produto ignorado (INATIVO): {produto.get('PRODUTO', '')}"
+            )
+
             continue
 
+        # ==================================================
+        # STATUS
+        # ==================================================
 
         if status == "ENVIADO":
+
+            print(
+                f"📦 Produto já enviado: {produto.get('PRODUTO', '')}"
+            )
+
             continue
 
+        # ==================================================
+        # SCORE
+        # ==================================================
 
         produto["SCORE"] = calcular_score(produto)
 
         elegiveis.append(produto)
 
+    # ==================================================
+    # ORDENA PELO SCORE
+    # ==================================================
 
     elegiveis.sort(
         key=lambda x: x["SCORE"],
         reverse=True
     )
-
 
     return elegiveis
 
@@ -151,27 +176,35 @@ if __name__ == "__main__":
             "PRIORIDADE": "ALTA",
             "DESCONTO": "15%",
             "STATUS": "",
-            "ATIVO": "SIM"
+            "ATIVO": "TRUE"
         },
 
         {
-            "PRODUTO": "Mouse",
+            "PRODUTO": "Mouse Gamer",
             "CATEGORIA": "MOUSE",
             "PRIORIDADE": "BAIXA",
             "DESCONTO": "40%",
             "STATUS": "",
-            "ATIVO": "SIM"
+            "ATIVO": "FALSE"
+        },
+
+        {
+            "PRODUTO": "SSD Kingston",
+            "CATEGORIA": "SSD",
+            "PRIORIDADE": "MÉDIA",
+            "DESCONTO": "20%",
+            "STATUS": "ENVIADO",
+            "ATIVO": "TRUE"
         }
 
     ]
 
-
     ranking = gerar_ranking(produtos)
 
+    print("\n===== RANKING =====\n")
 
     for p in ranking:
 
         print(
-            p["PRODUTO"],
-            p["SCORE"]
+            f"{p['PRODUTO']} | Score: {p['SCORE']}"
         )
