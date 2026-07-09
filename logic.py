@@ -11,20 +11,33 @@ from config import (
 from ranking import gerar_ranking
 
 
+FUSO = ZoneInfo("America/Fortaleza")
+
+
 def processar(enviar):
+
+    print("📋 Lendo planilha...")
 
     values = sheet.get_all_values()
 
+    if len(values) <= 1:
+        print("Nenhum produto encontrado.")
+        return
+
     header = [h.strip().upper() for h in values[0]]
+
+    # -----------------------------------------
+    # Localiza colunas pelo nome
+    # -----------------------------------------
 
     def col(nome):
         return header.index(nome.strip().upper())
 
-    produtos = []
+    # -----------------------------------------
+    # Converte linhas em dicionários
+    # -----------------------------------------
 
-    # ==================================================
-    # MONTA DICIONÁRIOS DOS PRODUTOS
-    # ==================================================
+    produtos = []
 
     for row_number, row in enumerate(values[1:], start=2):
 
@@ -38,41 +51,42 @@ def processar(enviar):
 
         produtos.append(produto)
 
-    # ==================================================
-    # GERA RANKING
-    # ==================================================
+    # -----------------------------------------
+    # Gera Ranking
+    # -----------------------------------------
 
     ranking = gerar_ranking(produtos)
 
+    print(f"Produtos elegíveis: {len(ranking)}")
+
     enviados = 0
+
+    # -----------------------------------------
+    # Percorre ranking
+    # -----------------------------------------
 
     for produto in ranking:
 
         if enviados >= LIMITE_POSTS:
             break
 
-        row_number = produto["ROW_NUMBER"]
+        row = produto["ROW_NUMBER"]
+
+        nome = produto.get("PRODUTO", "")
+        preco = produto.get("PREÇO", "")
+        preco_antigo = produto.get("PREÇO_ANTIGO", "")
+        desconto = produto.get("DESCONTO", "")
+        categoria = produto.get("CATEGORIA", "")
+        loja = produto.get("LOJA", "")
+        link = produto.get("LINK_AFILIADO", "")
+
+        # -----------------------------------------
+        # Desconto mínimo
+        # -----------------------------------------
 
         try:
 
-            nome = produto["PRODUTO"]
-            preco = produto["PREÇO"]
-            link = produto["LINK_AFILIADO"]
-            desconto = produto["DESCONTO"]
-
-        except Exception as erro:
-
-            print(f"❌ Erro linha {row_number}: {erro}")
-
-            continue
-
-        # ==================================================
-        # DESCONTO
-        # ==================================================
-
-        try:
-
-            desconto_valor = float(
+            desconto_float = float(
                 str(desconto)
                 .replace("%", "")
                 .replace(",", ".")
@@ -80,28 +94,26 @@ def processar(enviar):
 
         except:
 
-            desconto_valor = 0
+            desconto_float = 0
 
-
-        if desconto_valor < DESCONTO_MINIMO:
+        if desconto_float < DESCONTO_MINIMO:
 
             print(
-                f"⏩ {nome} ignorado (desconto {desconto_valor}%)."
+                f"⏩ Ignorado ({nome}) - desconto abaixo do mínimo."
             )
 
             continue
 
+        # -----------------------------------------
+        # Gera ID
+        # -----------------------------------------
 
-        # ==================================================
-        # GERA ID
-        # ==================================================
-
-        if not produto["ID"]:
+        if not produto.get("ID"):
 
             novo_id = str(uuid.uuid4())[:8]
 
             sheet.update_cell(
-                row_number,
+                row,
                 col("ID") + 1,
                 novo_id
             )
@@ -110,29 +122,39 @@ def processar(enviar):
                 f"🆔 ID criado para {nome}"
             )
 
-
-        # ==================================================
-        # MENSAGEM
-        # ==================================================
+        # -----------------------------------------
+        # Monta mensagem
+        # -----------------------------------------
 
         mensagem = f"""
-🔥 <b>OFERTA RELÂMPAGO</b>
+🔥 <b>OFERTA RELÂMPAGO</b> 🔥
 
 🛒 <b>{nome}</b>
 
-💰 <b>Preço:</b> R$ {preco}
+💰 <b>Preço:</b> {preco}
+
+"""
+
+        if preco_antigo:
+
+            mensagem += f"💸 <b>Preço anterior:</b> {preco_antigo}\n"
+
+        mensagem += f"""
 
 📉 <b>Desconto:</b> {desconto}
 
-🏷️ <b>Categoria:</b> {produto['CATEGORIA']}
+🏷️ <b>Categoria:</b> {categoria}
 
-🏪 <b>Loja:</b> {produto['LOJA']}
+🏪 <b>Loja:</b> {loja}
 
-👉 <a href="{link}">COMPRAR AGORA</a>
+👉 <a href="{link}">🛒 COMPRAR AGORA</a>
 
-⚠️ Os preços podem ser alterados a qualquer momento.
+⚠️ Os preços podem mudar a qualquer momento.
 """
 
+        # -----------------------------------------
+        # Envia Telegram
+        # -----------------------------------------
 
         print(f"📤 Enviando: {nome}")
 
@@ -146,25 +168,24 @@ def processar(enviar):
 
             continue
 
-
-        # ==================================================
-        # ATUALIZA PLANILHA
-        # ==================================================
+        # -----------------------------------------
+        # Atualiza planilha
+        # -----------------------------------------
 
         sheet.update_cell(
-            row_number,
+            row,
             col("STATUS") + 1,
             "ENVIADO"
         )
 
         sheet.update_cell(
-            row_number,
+            row,
             col("DATA_POSTAGEM") + 1,
-            datetime.now(
-                ZoneInfo("America/Fortaleza")
-            ).strftime("%d/%m/%Y %H:%M")
+            datetime.now(FUSO).strftime("%d/%m/%Y %H:%M")
         )
 
         enviados += 1
 
-    print(f"✅ {enviados} produto(s) enviado(s).")
+        print(f"✅ Publicado: {nome}")
+
+    print(f"\n🎉 Processo finalizado. {enviados} produto(s) enviado(s).")
