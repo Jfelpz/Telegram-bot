@@ -1,5 +1,3 @@
-# ranking.py
-
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -62,12 +60,11 @@ def desconto_para_float(valor):
         )
 
     except:
-
         return 0
 
 
 # ==================================================
-# PONTUAÇÃO POR RECÊNCIA
+# BÔNUS POR RECÊNCIA
 # ==================================================
 
 def calcular_bonus_recencia(data):
@@ -85,7 +82,6 @@ def calcular_bonus_recencia(data):
         )
 
     except:
-
         return 0
 
     dias = (
@@ -105,62 +101,49 @@ def calcular_bonus_recencia(data):
 
 
 # ==================================================
-# CALCULA SCORE
+# SCORE
 # ==================================================
 
 def calcular_score(produto):
 
     score = 0
 
-    # -----------------------------------
-    # PRIORIDADE
-    # -----------------------------------
-
     prioridade = str(
         produto.get("PRIORIDADE", "")
     ).strip().upper()
+
+    categoria = str(
+        produto.get("CATEGORIA", "")
+    ).strip().upper()
+
+    desconto = desconto_para_float(
+        produto.get("DESCONTO", 0)
+    )
 
     score += PESO_PRIORIDADE.get(
         prioridade,
         0
     )
 
-    # -----------------------------------
-    # CATEGORIA
-    # -----------------------------------
-
-    categoria = str(
-        produto.get("CATEGORIA", "")
-    ).strip().upper()
-
     score += PESO_CATEGORIA.get(
         categoria,
         5
     )
 
-    # -----------------------------------
-    # DESCONTO
-    # -----------------------------------
-
-    desconto = desconto_para_float(
-        produto.get("DESCONTO", 0)
-    )
-
     score += desconto
 
-    # -----------------------------------
-    # RECÊNCIA DA ATUALIZAÇÃO
-    # -----------------------------------
-
     score += calcular_bonus_recencia(
-        produto.get("ULTIMA_ATUALIZAÇÃO", "")
+        produto.get(
+            "ULTIMA_ATUALIZAÇÃO",
+            ""
+        )
     )
 
     return score
 
 
 # ==================================================
-# GERA RANKING
+# RANKING
 # ==================================================
 
 def gerar_ranking(produtos):
@@ -169,19 +152,18 @@ def gerar_ranking(produtos):
 
     for produto in produtos:
 
+        nome = produto.get(
+            "PRODUTO",
+            "SEM NOME"
+        )
+
+        # ---------------------------------
+        # CHECKBOX ATIVO
+        # ---------------------------------
+
         ativo = str(
             produto.get("ATIVO", "")
         ).strip().upper()
-
-        status = str(
-            produto.get("STATUS", "")
-        ).strip().upper()
-
-        # -----------------------------------
-        # CHECKBOX ATIVO
-        # TRUE = ativo
-        # FALSE = ignorado
-        # -----------------------------------
 
         if ativo not in (
             "TRUE",
@@ -190,27 +172,49 @@ def gerar_ranking(produtos):
             "1"
         ):
 
-            print(
-                f"⏸ Produto inativo: {produto.get('PRODUTO','')}"
-            )
+            print(f"⏸ Produto desativado: {nome}")
 
             continue
 
-        # -----------------------------------
+
+        # ---------------------------------
+        # ESTOQUE
+        # ---------------------------------
+
+        estoque = str(
+            produto.get("ESTOQUE", "")
+        ).strip().upper()
+
+        if estoque != "EM ESTOQUE":
+
+            print(f"📦 Sem estoque: {nome}")
+
+            continue
+
+
+        # ---------------------------------
         # STATUS
-        # -----------------------------------
+        # ---------------------------------
+
+        status = str(
+            produto.get("STATUS", "")
+        ).strip().upper()
 
         if status == "ENVIADO":
 
-            print(
-                f"📦 Já enviado: {produto.get('PRODUTO','')}"
-            )
+            print(f"✅ Já enviado: {nome}")
 
             continue
+
+
+        # ---------------------------------
+        # SCORE
+        # ---------------------------------
 
         produto["SCORE"] = calcular_score(produto)
 
         elegiveis.append(produto)
+
 
     elegiveis.sort(
         key=lambda x: x["SCORE"],
@@ -234,6 +238,7 @@ if __name__ == "__main__":
             "PRIORIDADE": "ALTA",
             "DESCONTO": "15%",
             "ATIVO": "TRUE",
+            "ESTOQUE": "Em estoque",
             "STATUS": "",
             "ULTIMA_ATUALIZAÇÃO": "05/07/2026 10:30"
         },
@@ -244,6 +249,7 @@ if __name__ == "__main__":
             "PRIORIDADE": "ALTA",
             "DESCONTO": "10%",
             "ATIVO": "TRUE",
+            "ESTOQUE": "Atualmente indisponível",
             "STATUS": "",
             "ULTIMA_ATUALIZAÇÃO": "04/07/2026 09:20"
         },
@@ -254,6 +260,7 @@ if __name__ == "__main__":
             "PRIORIDADE": "MÉDIA",
             "DESCONTO": "25%",
             "ATIVO": "TRUE",
+            "ESTOQUE": "Em estoque",
             "STATUS": "",
             "ULTIMA_ATUALIZAÇÃO": "01/07/2026 08:00"
         },
@@ -264,6 +271,7 @@ if __name__ == "__main__":
             "PRIORIDADE": "BAIXA",
             "DESCONTO": "40%",
             "ATIVO": "FALSE",
+            "ESTOQUE": "Em estoque",
             "STATUS": "",
             "ULTIMA_ATUALIZAÇÃO": "05/07/2026 12:00"
         }
