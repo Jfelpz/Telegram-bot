@@ -44,7 +44,6 @@ def processar(enviar):
         produto = {}
 
         for i, coluna in enumerate(header):
-
             produto[coluna] = row[i] if i < len(row) else ""
 
         produto["ROW_NUMBER"] = row_number
@@ -52,7 +51,7 @@ def processar(enviar):
         produtos.append(produto)
 
     # -----------------------------------------
-    # Gera Ranking
+    # Ranking
     # -----------------------------------------
 
     ranking = gerar_ranking(produtos)
@@ -72,13 +71,53 @@ def processar(enviar):
 
         row = produto["ROW_NUMBER"]
 
-        nome = produto.get("PRODUTO", "")
-        preco = produto.get("PREÇO", "")
-        preco_antigo = produto.get("PREÇO_ANTIGO", "")
-        desconto = produto.get("DESCONTO", "")
-        categoria = produto.get("CATEGORIA", "")
-        loja = produto.get("LOJA", "")
-        link = produto.get("LINK_AFILIADO", "")
+        nome = produto.get("PRODUTO", "").strip()
+        preco = str(produto.get("PREÇO", "")).strip()
+        preco_antigo = str(produto.get("PREÇO_ANTIGO", "")).strip()
+        desconto = str(produto.get("DESCONTO", "")).strip()
+        categoria = str(produto.get("CATEGORIA", "")).strip()
+        loja = str(produto.get("LOJA", "")).strip()
+        link = str(produto.get("LINK_AFILIADO", "")).strip()
+        estoque = str(produto.get("ESTOQUE", "")).strip().upper()
+        status = str(produto.get("STATUS", "")).strip().upper()
+
+        # -----------------------------------------
+        # Segurança extra
+        # -----------------------------------------
+
+        if status == "ENVIADO":
+            print(f"⏩ {nome} já foi enviado.")
+            continue
+
+        if estoque != "EM ESTOQUE":
+            print(f"📦 {nome} sem estoque.")
+            continue
+
+        # -----------------------------------------
+        # Link afiliado
+        # -----------------------------------------
+
+        if not link or not link.startswith("http"):
+
+            print(f"🔗 Link inválido: {nome}")
+
+            continue
+
+        # -----------------------------------------
+        # Preço
+        # -----------------------------------------
+
+        if preco in (
+            "",
+            "-",
+            "N/A",
+            "INDISPONÍVEL",
+            "INDISPONIVEL"
+        ):
+
+            print(f"💰 Preço inválido: {nome}")
+
+            continue
 
         # -----------------------------------------
         # Desconto mínimo
@@ -87,7 +126,7 @@ def processar(enviar):
         try:
 
             desconto_float = float(
-                str(desconto)
+                desconto
                 .replace("%", "")
                 .replace(",", ".")
             )
@@ -99,7 +138,7 @@ def processar(enviar):
         if desconto_float < DESCONTO_MINIMO:
 
             print(
-                f"⏩ Ignorado ({nome}) - desconto abaixo do mínimo."
+                f"📉 Desconto abaixo do mínimo: {nome}"
             )
 
             continue
@@ -118,12 +157,10 @@ def processar(enviar):
                 novo_id
             )
 
-            print(
-                f"🆔 ID criado para {nome}"
-            )
+            print(f"🆔 ID criado: {novo_id}")
 
         # -----------------------------------------
-        # Monta mensagem
+        # Mensagem Telegram
         # -----------------------------------------
 
         mensagem = f"""
@@ -132,12 +169,13 @@ def processar(enviar):
 🛒 <b>{nome}</b>
 
 💰 <b>Preço:</b> {preco}
-
 """
 
         if preco_antigo:
 
-            mensagem += f"💸 <b>Preço anterior:</b> {preco_antigo}\n"
+            mensagem += (
+                f"\n💸 <b>Preço anterior:</b> {preco_antigo}"
+            )
 
         mensagem += f"""
 
@@ -164,7 +202,7 @@ def processar(enviar):
 
         except Exception as erro:
 
-            print(f"❌ Telegram: {erro}")
+            print(f"❌ Erro Telegram: {erro}")
 
             continue
 
@@ -188,4 +226,6 @@ def processar(enviar):
 
         print(f"✅ Publicado: {nome}")
 
-    print(f"\n🎉 Processo finalizado. {enviados} produto(s) enviado(s).")
+    print(
+        f"\n🎉 Processo finalizado. {enviados} produto(s) enviado(s)."
+    )
