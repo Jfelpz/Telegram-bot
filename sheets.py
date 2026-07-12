@@ -30,12 +30,14 @@ spreadsheet = client.open_by_key(SHEET_ID)
 # ==================================================
 
 banco_sheet = spreadsheet.worksheet("BANCO_DADOS")
+
 agulha_sheet = spreadsheet.worksheet("AGULHA")
+
 config_sheet = spreadsheet.worksheet("CONFIG")
 
 
 # ==================================================
-# CARREGA BANCO DE DADOS
+# CARREGAR BANCO DE DADOS
 # ==================================================
 
 def carregar_banco():
@@ -48,30 +50,39 @@ def carregar_banco():
 
 
 # ==================================================
-# CARREGA AGULHA
+# CARREGAR AGULHA
 # ==================================================
 
 def carregar_agulha():
 
     """
-    Retorna os produtos presentes na AGULHA.
+    Retorna todos os produtos presentes
+    na aba AGULHA.
     """
 
     return agulha_sheet.get_all_records()
 
 
 # ==================================================
-# CONFIG
+# CARREGAR CONFIGURAÇÕES
 # ==================================================
 
 def carregar_config():
 
     """
-    Lê a aba CONFIG e devolve um dicionário.
+    Lê a aba CONFIG.
 
-    Estrutura esperada:
+    Estrutura:
 
     CONFIGURAÇÃO | VALOR
+
+    Converte automaticamente:
+
+    TRUE/FALSE -> bool
+    15 -> int
+    15.5 -> float
+
+    Horários permanecem string.
     """
 
     valores = config_sheet.get_all_values()
@@ -85,7 +96,53 @@ def carregar_config():
 
         chave = linha[0].strip().upper()
 
-        valor = linha[1]
+        valor = linha[1].strip()
+
+        # ------------------------
+        # BOOLEAN
+        # ------------------------
+
+        if valor.upper() in ("TRUE", "FALSE"):
+
+            configuracoes[chave] = (
+                valor.upper() == "TRUE"
+            )
+
+            continue
+
+        # ------------------------
+        # INTEIRO
+        # ------------------------
+
+        try:
+
+            configuracoes[chave] = int(valor)
+
+            continue
+
+        except:
+
+            pass
+
+        # ------------------------
+        # FLOAT
+        # ------------------------
+
+        try:
+
+            configuracoes[chave] = float(
+                valor.replace(",", ".")
+            )
+
+            continue
+
+        except:
+
+            pass
+
+        # ------------------------
+        # TEXTO
+        # ------------------------
 
         configuracoes[chave] = valor
 
@@ -93,13 +150,13 @@ def carregar_config():
 
 
 # ==================================================
-# CABEÇALHOS
+# COLUNAS
 # ==================================================
 
-def obter_colunas(sheet):
+def obter_colunas(aba):
 
     """
-    Retorna um dicionário contendo:
+    Retorna:
 
     {
         "ID":1,
@@ -108,7 +165,7 @@ def obter_colunas(sheet):
     }
     """
 
-    cabecalho = sheet.row_values(1)
+    cabecalho = aba.row_values(1)
 
     return {
 
@@ -126,17 +183,78 @@ def obter_colunas(sheet):
 def limpar_agulha():
 
     """
-    Remove todos os produtos da AGULHA,
-    mantendo apenas o cabeçalho.
+    Remove todos os produtos da AGULHA.
+
+    Mantém somente o cabeçalho.
     """
 
-    total_linhas = len(agulha_sheet.get_all_values())
+    total = len(
+        agulha_sheet.get_all_values()
+    )
 
-    if total_linhas > 1:
+    if total <= 1:
+        return
 
-        agulha_sheet.batch_clear(
-            [f"A2:H{total_linhas}"]
-        )
+    agulha_sheet.batch_clear(
+        [f"A2:H{total}"]
+    )
+
+
+# ==================================================
+# ESCREVER PRODUTOS NA AGULHA
+# ==================================================
+
+def escrever_agulha(produtos):
+
+    """
+    Escreve uma lista de produtos na AGULHA.
+
+    Espera receber uma lista de listas.
+
+    Exemplo:
+
+    [
+        [1, id, url, preco...],
+        [2, id, url, preco...]
+    ]
+    """
+
+    limpar_agulha()
+
+    if not produtos:
+        return
+
+    agulha_sheet.update(
+        f"A2:H{len(produtos)+1}",
+        produtos
+    )
+
+
+# ==================================================
+# ATUALIZA UMA CÉLULA
+# ==================================================
+
+def atualizar_celula(
+    aba,
+    linha,
+    coluna,
+    valor
+):
+
+    aba.update_cell(
+        linha,
+        coluna,
+        valor
+    )
+
+
+# ==================================================
+# LER LINHAS
+# ==================================================
+
+def ler_linhas(aba):
+
+    return aba.get_all_values()
 
 
 # ==================================================
@@ -145,30 +263,56 @@ def limpar_agulha():
 
 if __name__ == "__main__":
 
-    print("===================================")
-    print("Google Sheets conectado")
-    print("===================================\n")
+    print("=" * 50)
+    print("GOOGLE SHEETS CONECTADO")
+    print("=" * 50)
+
+    print()
+
+    banco = carregar_banco()
 
     print(
-        f"Produtos no BANCO_DADOS: {len(carregar_banco())}"
+        f"BANCO_DADOS: {len(banco)} produtos"
     )
+
+    agulha = carregar_agulha()
 
     print(
-        f"Produtos na AGULHA: {len(carregar_agulha())}"
+        f"AGULHA: {len(agulha)} produtos"
     )
 
-    print("\nConfigurações:")
+    print()
 
-    print(carregar_config())
+    print("CONFIG:")
 
-    print("\nColunas BANCO_DADOS:")
+    config = carregar_config()
+
+    for chave, valor in config.items():
+
+        print(
+            f"{chave}: {valor}"
+        )
+
+    print()
+
+    print("COLUNAS BANCO_DADOS")
 
     print(
-        obter_colunas(banco_sheet)
+        obter_colunas(
+            banco_sheet
+        )
     )
 
-    print("\nColunas AGULHA:")
+    print()
+
+    print("COLUNAS AGULHA")
 
     print(
-        obter_colunas(agulha_sheet)
+        obter_colunas(
+            agulha_sheet
+        )
     )
+
+    print()
+
+    print("Teste concluído.")
