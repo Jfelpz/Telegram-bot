@@ -1,164 +1,89 @@
-import random
+from ranking import gerar_ranking
 
-from cache import (
-    precisa_coletar,
-    registrar_coleta
+from sheets import (
+    carregar_banco,
+    carregar_config,
+    escrever_agulha
 )
 
-from config import MAX_COLETAS
-
-
 
 # ==================================================
-# COLETOR PRINCIPAL
+# MONTA A AGULHA
 # ==================================================
 
-def coletar_produtos(
-    sheet,
-    produtos,
-    colunas
-):
+def montar_agulha():
 
+    print("=" * 60)
+    print("INICIANDO COLETOR")
+    print("=" * 60)
 
-    print(
-        "=== INICIANDO COLETOR ==="
+    config = carregar_config()
+
+    tamanho_agulha = config.get(
+        "TAMANHO_AGULHA",
+        36
     )
 
+    banco = carregar_banco()
 
-    # Evita padrão fixo de coleta
-    random.shuffle(produtos)
+    print(f"Produtos encontrados: {len(banco)}")
 
+    ranking = gerar_ranking(banco)
 
-    coletados = 0
+    print(f"Produtos elegíveis: {len(ranking)}")
 
+    produtos_agulha = []
 
+    posicao = 1
 
-    for linha, produto in enumerate(
-        produtos,
-        start=2
-    ):
+    for produto in ranking:
 
-
-        # Limite de consultas
-        if coletados >= MAX_COLETAS:
-
-            print(
-                "Limite de coleta atingido."
-            )
-
+        if posicao > tamanho_agulha:
             break
 
+        produtos_agulha.append([
 
+            posicao,
 
-        try:
+            produto.get("ROW_NUMBER", ""),
 
-            ultima_coleta = produto.get(
-                "ULTIMA_COLETA_API",
-                ""
-            )
+            produto.get("ID", ""),
 
+            produto.get("PRODUTO", ""),
 
-            intervalo = produto.get(
-                "INTERVALO_COLETA_API",
-                ""
-            )
+            produto.get("URL_ORIGEM", ""),
 
+            produto.get("LINK_AFILIADO", ""),
 
+            "",     # PREÇO (Amapulse)
 
-            # ==================================
-            # CACHE
-            # ==================================
+            "",     # PREÇO ANTIGO
 
-            if not precisa_coletar(
-                ultima_coleta,
-                intervalo
-            ):
+            "",     # DESCONTO
 
-                continue
+            "",     # ESTOQUE
 
+            ""      # ULTIMA_ATUALIZAÇÃO
 
+        ])
 
-            print(
-                f"Produto liberado para coleta: linha {linha}"
-            )
+        posicao += 1
 
+    escrever_agulha(produtos_agulha)
 
+    print()
 
-            # ==================================
-            # AQUI O AMAPULSE SERÁ ATUALIZADO
-            # PELA PLANILHA
-            # ==================================
+    print(f"{len(produtos_agulha)} produtos enviados para AGULHA.")
 
-            atualizar_formula_amapulse(
-                sheet,
-                linha
-            )
+    print("Aguardando atualização do Amapulse...")
 
-
-
-            # ==================================
-            # REGISTRA CONSULTA
-            # ==================================
-
-            registrar_coleta(
-                sheet,
-                linha,
-                colunas["ultima_coleta_api"],
-                colunas["intervalo_api"]
-            )
-
-
-            coletados += 1
-
-
-
-        except Exception as erro:
-
-
-            print(
-                f"[ERRO] Linha {linha}: {erro}"
-            )
-
-
-
-    print(
-        f"=== FINALIZADO | {coletados} produtos consultados ==="
-    )
-
+    print("=" * 60)
 
 
 # ==================================================
-# FORÇA RECÁLCULO DAS FÓRMULAS
-# ==================================================
-
-def atualizar_formula_amapulse(
-    sheet,
-    linha
-):
-
-    """
-    Força o Google Sheets a recalcular
-    as fórmulas Amapulse.
-
-    Mantém as fórmulas intactas.
-    """
-
-    valores = sheet.row_values(linha)
-
-
-    sheet.update(
-        f"A{linha}:Z{linha}",
-        [valores]
-    )
-
-
-
-# ==================================================
-# TESTE
+# EXECUÇÃO
 # ==================================================
 
 if __name__ == "__main__":
 
-    print(
-        "Coletor pronto."
-    )
+    montar_agulha()
