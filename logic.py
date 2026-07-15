@@ -1,170 +1,194 @@
-import uuid
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from sheets import sheet
-from config import (
-    LIMITE_POSTS,
-    DESCONTO_MINIMO
+from sheets import (
+    carregar_banco,
+    carregar_config,
+    banco_sheet,
+    obter_colunas,
+    atualizar_celula
 )
 
-from ranking import gerar_ranking
+from telegram import enviar
 
 
 FUSO = ZoneInfo("America/Fortaleza")
 
 
-def processar(enviar):
+# =====================================================
+# VERIFICA HORÁRIO DE FUNCIONAMENTO
+# =====================================================
 
-    print("📋 Lendo planilha...")
+def dentro_do_horario(config):
 
-    values = sheet.get_all_values()
+    agora = datetime.now(FUSO).time()
 
-    if len(values) <= 1:
-        print("Nenhum produto encontrado.")
+    hora_inicio = datetime.strptime(
+        config["HORA_INICIO"],
+        "%H:%M"
+    ).time()
+
+    hora_fim = datetime.strptime(
+        config["HORA_FIM"][:5],
+        "%H:%M"
+    ).time()
+
+    return hora_inicio <= agora <= hora_fim
+
+
+# =====================================================
+# PROCESSAMENTO PRINCIPAL
+# =====================================================
+
+def processar():
+
+    print("=" * 60)
+    print("PROCESSANDO PUBLICAÇÕES")
+    print("=" * 60)
+
+    config = carregar_config()
+
+    # -------------------------------------------------
+
+    if not config.get("BOT_ATIVO", True):
+
+        print("Bot desativado.")
+
         return
 
-    header = [h.strip().upper() for h in values[0]]
+    # -------------------------------------------------
 
-    # -----------------------------------------
-    # Localiza colunas pelo nome
-    # -----------------------------------------
+    if not dentro_do_horario(config):
 
-    def col(nome):
-        return header.index(nome.strip().upper())
+        print("Fora do horário permitido.")
 
-    # -----------------------------------------
-    # Converte linhas em dicionários
-    # -----------------------------------------
+        return
 
-    produtos = []
+    # -------------------------------------------------
 
-    for row_number, row in enumerate(values[1:], start=2):
+    desconto_minimo = float(
+        config.get(
+            "DESCONTO_MINIMO",
+            15
+        )
+    )
 
-        produto = {}
+    produtos = carregar_banco()
 
-        for i, coluna in enumerate(header):
-            produto[coluna] = row[i] if i < len(row) else ""
-
-        produto["ROW_NUMBER"] = row_number
-
-        produtos.append(produto)
-
-    # -----------------------------------------
-    # Ranking
-    # -----------------------------------------
-
-    ranking = gerar_ranking(produtos)
-
-    print(f"Produtos elegíveis: {len(ranking)}")
+    colunas = obter_colunas(
+        banco_sheet
+    )
 
     enviados = 0
 
-    # -----------------------------------------
-    # Percorre ranking
-    # -----------------------------------------
+    # -------------------------------------------------
 
-    for produto in ranking:
+    for produto in produtos:
 
-        if enviados >= LIMITE_POSTS:
-            break
+        status = str(
+            produto.get(
+                "STATUS",
+                ""
+            )
+        ).strip().upper()
 
-        row = produto["ROW_NUMBER"]
-
-        nome = produto.get("PRODUTO", "").strip()
-        preco = str(produto.get("PREÇO", "")).strip()
-        preco_antigo = str(produto.get("PREÇO_ANTIGO", "")).strip()
-        desconto = str(produto.get("DESCONTO", "")).strip()
-        categoria = str(produto.get("CATEGORIA", "")).strip()
-        loja = str(produto.get("LOJA", "")).strip()
-        link = str(produto.get("LINK_AFILIADO", "")).strip()
-        estoque = str(produto.get("ESTOQUE", "")).strip().upper()
-        status = str(produto.get("STATUS", "")).strip().upper()
-
-        # -----------------------------------------
-        # Segurança extra
-        # -----------------------------------------
-
-        if status == "ENVIADO":
-            print(f"⏩ {nome} já foi enviado.")
+        if status != "PRONTO":
             continue
+
+        nome = str(
+            produto.get(
+                "PRODUTO",
+                ""
+            )
+        ).strip()
+
+        estoque = str(
+            produto.get(
+                "ESTOQUE",
+                ""
+            )
+        ).strip().upper()
 
         if estoque != "EM ESTOQUE":
-            print(f"📦 {nome} sem estoque.")
-            continue
 
-        # -----------------------------------------
-        # Link afiliado
-        # -----------------------------------------
-
-        if not link or not link.startswith("http"):
-
-            print(f"🔗 Link inválido: {nome}")
+            print(
+                f"Sem estoque: {nome}"
+            )
 
             continue
 
-        # -----------------------------------------
-        # Preço
-        # -----------------------------------------
-
-        if preco in (
-            "",
-            "-",
-            "N/A",
-            "INDISPONÍVEL",
-            "INDISPONIVEL"
-        ):
-
-            print(f"💰 Preço inválido: {nome}")
-
-            continue
-
-        # -----------------------------------------
-        # Desconto mínimo
-        # -----------------------------------------
+        desconto = str(
+            produto.get(
+                "DESCONTO",
+                ""
+            )
+        ).replace(
+            "%",
+            ""
+        ).replace(
+            ",",
+            "."
+        )
 
         try:
 
             desconto_float = float(
                 desconto
-                .replace("%", "")
-                .replace(",", ".")
             )
 
         except:
 
             desconto_float = 0
 
-        if desconto_float < DESCONTO_MINIMO:
+        if desconto_float < desconto_minimo:
 
             print(
-                f"📉 Desconto abaixo do mínimo: {nome}"
+                f"Desconto insuficiente: {nome}"
             )
 
             continue
 
-        # -----------------------------------------
-        # Gera ID
-        # -----------------------------------------
+        link = str(
+            produto.get(
+                "LINK_AFILIADO",
+                ""
+            )
+        ).strip()
 
-        if not produto.get("ID"):
+        if not link.startswith("http"):
 
-            novo_id = str(uuid.uuid4())[:8]
-
-            sheet.update_cell(
-                row,
-                col("ID") + 1,
-                novo_id
+            print(
+                f"Link inválido: {nome}"
             )
 
-            print(f"🆔 ID criado: {novo_id}")
+            continue
 
-        # -----------------------------------------
-        # Mensagem Telegram
-        # -----------------------------------------
+        preco = produto.get(
+            "PREÇO",
+            ""
+        )
+
+        preco_antigo = produto.get(
+            "PREÇO_ANTIGO",
+            ""
+        )
+
+        categoria = produto.get(
+            "CATEGORIA",
+            ""
+        )
+
+        loja = produto.get(
+            "LOJA",
+            ""
+        )
+
+        # -------------------------------------------------
+        # Mensagem
+        # -------------------------------------------------
 
         mensagem = f"""
-🔥 <b>OFERTA RELÂMPAGO</b> 🔥
+🔥 <b>OFERTA RELÂMPAGO</b>
 
 🛒 <b>{nome}</b>
 
@@ -173,28 +197,22 @@ def processar(enviar):
 
         if preco_antigo:
 
-            mensagem += (
-                f"\n💸 <b>Preço anterior:</b> {preco_antigo}"
-            )
+            mensagem += f"\n💸 <b>De:</b> {preco_antigo}"
 
         mensagem += f"""
 
-📉 <b>Desconto:</b> {desconto}
+📉 <b>Desconto:</b> {produto.get("DESCONTO","")}
 
 🏷️ <b>Categoria:</b> {categoria}
 
 🏪 <b>Loja:</b> {loja}
 
-👉 <a href="{link}">🛒 COMPRAR AGORA</a>
+👉 <a href="{link}">COMPRAR AGORA</a>
 
-⚠️ Os preços podem mudar a qualquer momento.
+⚠️ Promoção por tempo limitado.
 """
 
-        # -----------------------------------------
-        # Envia Telegram
-        # -----------------------------------------
-
-        print(f"📤 Enviando: {nome}")
+        print(f"Enviando {nome}")
 
         try:
 
@@ -202,30 +220,51 @@ def processar(enviar):
 
         except Exception as erro:
 
-            print(f"❌ Erro Telegram: {erro}")
+            print(erro)
 
             continue
 
-        # -----------------------------------------
-        # Atualiza planilha
-        # -----------------------------------------
+        row = int(produto["ROW_NUMBER"])
 
-        sheet.update_cell(
+        atualizar_celula(
+
+            banco_sheet,
+
             row,
-            col("STATUS") + 1,
+
+            colunas["STATUS"],
+
             "ENVIADO"
+
         )
 
-        sheet.update_cell(
+        atualizar_celula(
+
+            banco_sheet,
+
             row,
-            col("DATA_POSTAGEM") + 1,
-            datetime.now(FUSO).strftime("%d/%m/%Y %H:%M")
+
+            colunas["DATA_POSTAGEM"],
+
+            datetime.now(FUSO).strftime(
+                "%d/%m/%Y %H:%M"
+            )
+
         )
 
         enviados += 1
 
-        print(f"✅ Publicado: {nome}")
+    print()
 
-    print(
-        f"\n🎉 Processo finalizado. {enviados} produto(s) enviado(s)."
-    )
+    print(f"{enviados} produto(s) enviados.")
+
+    print("=" * 60)
+
+
+# =====================================================
+# TESTE
+# =====================================================
+
+if __name__ == "__main__":
+
+    processar()
