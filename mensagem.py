@@ -1,65 +1,48 @@
-# ==================================================
+# =====================================================
 # MONTA MENSAGEM DO TELEGRAM
-# ==================================================
+# =====================================================
 
 def montar_mensagem(produto):
 
-    nome = produto.get(
-        "PRODUTO",
-        ""
-    )
+    nome = str(produto.get("PRODUTO", "")).strip()
 
-    preco = produto.get(
-        "PREÇO",
-        ""
-    )
+    preco = str(produto.get("PREÇO", "")).strip()
 
-    preco_antigo = produto.get(
-        "PREÇO_ANTIGO",
-        ""
-    )
+    preco_antigo = str(
+        produto.get("PREÇO_ANTIGO", "")
+    ).strip()
 
-    desconto = produto.get(
-        "DESCONTO",
-        ""
-    )
+    desconto = str(
+        produto.get("DESCONTO", "")
+    ).strip()
 
-    categoria = produto.get(
-        "CATEGORIA",
-        ""
-    )
+    categoria = str(
+        produto.get("CATEGORIA", "")
+    ).strip()
 
-    loja = produto.get(
-        "LOJA",
-        ""
-    )
+    loja = str(
+        produto.get("LOJA", "")
+    ).strip()
 
-    link = produto.get(
-        "LINK_AFILIADO",
-        ""
-    )
+    link = str(
+        produto.get("LINK_AFILIADO", "")
+    ).strip()
 
     mensagem = f"""
-🔥 <b>OFERTA RELÂMPAGO</b> 🔥
+🔥 <b>🔥 OFERTA RELÂMPAGO 🔥</b>
 
 🛒 <b>{nome}</b>
 
-💰 <b>Preço:</b> {preco}
 """
 
     if preco_antigo:
 
-        mensagem += (
-            f"\n💸 <b>De:</b> {preco_antigo}"
-        )
-
-    if desconto:
-
-        mensagem += (
-            f"\n📉 <b>Desconto:</b> {desconto}"
-        )
+        mensagem += f"💸 <b>De:</b> {preco_antigo}\n"
 
     mensagem += f"""
+💰 <b>Por:</b> {preco}
+
+📉 <b>Desconto:</b> {desconto}
 
 🏷️ <b>Categoria:</b> {categoria}
 
@@ -67,45 +50,15 @@ def montar_mensagem(produto):
 
 ━━━━━━━━━━━━━━━━━━
 
-⚡ Promoção por tempo limitado!
+⚡ Estoque pode acabar a qualquer momento.
 
-🚚 Produto disponível para compra.
+🚀 Aproveite enquanto o preço está disponível!
 
-👉 <a href="{link}">
-🛒 COMPRAR AGORA
-</a>
+👉 <a href="{link}">🛒 COMPRAR AGORA</a>
 
-⚠️ O preço pode ser alterado a qualquer momento sem aviso.
+━━━━━━━━━━━━━━━━━━
+
+⚠️ Os preços podem sofrer alterações sem aviso.
 """
 
     return mensagem
-
-
-# ==================================================
-# TESTE
-# ==================================================
-
-if __name__ == "__main__":
-
-    exemplo = {
-
-        "PRODUTO": "RTX 5070",
-
-        "PREÇO": "R$ 3.899,00",
-
-        "PREÇO_ANTIGO": "R$ 4.599,00",
-
-        "DESCONTO": "15%",
-
-        "CATEGORIA": "GPU",
-
-        "LOJA": "Amazon",
-
-        "LINK_AFILIADO": "https://..."
-    }
-
-    print(
-        montar_mensagem(
-            exemplo
-        )
-    )
