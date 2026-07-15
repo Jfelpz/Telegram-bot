@@ -184,82 +184,50 @@ def processar():
         )
 
         # -------------------------------------------------
-        # Mensagem
-        # -------------------------------------------------
+# Monta mensagem
+# -------------------------------------------------
 
-        mensagem = f"""
-🔥 <b>OFERTA RELÂMPAGO</b>
+mensagem = montar_mensagem(produto)
 
-🛒 <b>{nome}</b>
+print(f"Enviando {nome}")
 
-💰 <b>Preço:</b> {preco}
-"""
+try:
 
-        if preco_antigo:
+    enviar(mensagem)
 
-            mensagem += f"\n💸 <b>De:</b> {preco_antigo}"
+except Exception as erro:
 
-        mensagem += f"""
+    print(erro)
 
-📉 <b>Desconto:</b> {produto.get("DESCONTO","")}
+    continue
 
-🏷️ <b>Categoria:</b> {categoria}
+row = int(produto["ROW_NUMBER"])
 
-🏪 <b>Loja:</b> {loja}
+atualizar_celula(
 
-👉 <a href="{link}">COMPRAR AGORA</a>
+    banco_sheet,
 
-⚠️ Promoção por tempo limitado.
-"""
+    row,
 
-        print(f"Enviando {nome}")
+    colunas["STATUS"],
 
-        try:
+    "ENVIADO"
 
-            enviar(mensagem)
+)
 
-        except Exception as erro:
+atualizar_celula(
 
-            print(erro)
+    banco_sheet,
 
-            continue
+    row,
 
-        row = int(produto["ROW_NUMBER"])
+    colunas["DATA_POSTAGEM"],
 
-        atualizar_celula(
+    datetime.now(FUSO).strftime(
+        "%d/%m/%Y %H:%M"
+    )
 
-            banco_sheet,
-
-            row,
-
-            colunas["STATUS"],
-
-            "ENVIADO"
-
-        )
-
-        atualizar_celula(
-
-            banco_sheet,
-
-            row,
-
-            colunas["DATA_POSTAGEM"],
-
-            datetime.now(FUSO).strftime(
-                "%d/%m/%Y %H:%M"
-            )
-
-        )
-
-        enviados += 1
-
-    print()
-
-    print(f"{enviados} produto(s) enviados.")
-
-    print("=" * 60)
-
+)
 
 # =====================================================
 # TESTE
