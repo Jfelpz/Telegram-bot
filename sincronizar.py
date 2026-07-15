@@ -1,13 +1,14 @@
 from sheets import (
     carregar_agulha,
     banco_sheet,
-    obter_colunas
+    obter_colunas,
+    atualizar_celula
 )
 
 
-# ==================================================
+# ==========================================================
 # SINCRONIZA AGULHA -> BANCO_DADOS
-# ==================================================
+# ==========================================================
 
 def sincronizar():
 
@@ -23,91 +24,101 @@ def sincronizar():
 
         return
 
-    colunas = obter_colunas(
-        banco_sheet
-    )
+    colunas = obter_colunas(banco_sheet)
 
     atualizados = 0
 
     for produto in agulha:
 
-        try:
+        row_banco = produto.get("ROW_BANCO")
 
-            row = int(
-                produto["ROW_BANCO"]
-            )
-
-        except:
-
+        if not row_banco:
             continue
 
         try:
+            row_banco = int(row_banco)
+        except:
+            continue
 
-            banco_sheet.update_cell(
-                row,
-                colunas["PREÇO"],
-                produto.get(
-                    "PREÇO",
-                    ""
-                )
+        preco = str(produto.get("PREÇO", "")).strip()
+        preco_antigo = str(produto.get("PREÇO_ANTIGO", "")).strip()
+        desconto = str(produto.get("DESCONTO", "")).strip()
+        estoque = str(produto.get("ESTOQUE", "")).strip()
+        ultima = str(produto.get("ULTIMA_ATUALIZAÇÃO", "")).strip()
+
+        # -------------------------------------------------
+        # Atualiza informações coletadas
+        # -------------------------------------------------
+
+        atualizar_celula(
+            banco_sheet,
+            row_banco,
+            colunas["PREÇO"],
+            preco
+        )
+
+        atualizar_celula(
+            banco_sheet,
+            row_banco,
+            colunas["PREÇO_ANTIGO"],
+            preco_antigo
+        )
+
+        atualizar_celula(
+            banco_sheet,
+            row_banco,
+            colunas["DESCONTO"],
+            desconto
+        )
+
+        atualizar_celula(
+            banco_sheet,
+            row_banco,
+            colunas["ESTOQUE"],
+            estoque
+        )
+
+        atualizar_celula(
+            banco_sheet,
+            row_banco,
+            colunas["ULTIMA_ATUALIZAÇÃO"],
+            ultima
+        )
+
+        # -------------------------------------------------
+        # Define STATUS
+        # -------------------------------------------------
+
+        if estoque.upper() == "EM ESTOQUE":
+
+            atualizar_celula(
+                banco_sheet,
+                row_banco,
+                colunas["STATUS"],
+                "PRONTO"
             )
 
-            banco_sheet.update_cell(
-                row,
-                colunas["PREÇO_ANTIGO"],
-                produto.get(
-                    "PREÇO_ANTIGO",
-                    ""
-                )
+        else:
+
+            atualizar_celula(
+                banco_sheet,
+                row_banco,
+                colunas["STATUS"],
+                "PENDENTE"
             )
 
-            banco_sheet.update_cell(
-                row,
-                colunas["DESCONTO"],
-                produto.get(
-                    "DESCONTO",
-                    ""
-                )
-            )
-
-            banco_sheet.update_cell(
-                row,
-                colunas["ESTOQUE"],
-                produto.get(
-                    "ESTOQUE",
-                    ""
-                )
-            )
-
-            banco_sheet.update_cell(
-                row,
-                colunas["ULTIMA_ATUALIZAÇÃO"],
-                produto.get(
-                    "ULTIMA_ATUALIZAÇÃO",
-                    ""
-                )
-            )
-
-            atualizados += 1
-
-        except Exception as erro:
-
-            print(
-                f"Erro linha {row}: {erro}"
-            )
+        atualizados += 1
 
     print()
 
-    print(
-        f"{atualizados} produtos sincronizados."
-    )
+    print(f"{atualizados} produto(s) sincronizados.")
 
     print("=" * 60)
 
 
-# ==================================================
+# ==========================================================
 # TESTE
-# ==================================================
+# ==========================================================
 
 if __name__ == "__main__":
 
