@@ -1,61 +1,161 @@
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 from ranking import gerar_ranking
 
 from sheets import (
     carregar_banco,
     carregar_config,
-    escrever_agulha
+    escrever_agulha,
+    atualizar_celula,
+    banco_sheet,
+    obter_colunas
 )
 
 
-# ==================================================
-# MONTA A AGULHA
-# ==================================================
+FUSO = ZoneInfo("America/Fortaleza")
 
-def montar_agulha():
+
+# ==========================================================
+# COLETOR PRINCIPAL
+# ==========================================================
+
+def executar_coletor():
 
     print("=" * 60)
     print("INICIANDO COLETOR")
     print("=" * 60)
 
+    # ------------------------------------------------------
+    # CONFIG
+    # ------------------------------------------------------
+
     config = carregar_config()
 
-    tamanho_agulha = config.get(
-        "TAMANHO_AGULHA",
-        36
+    tamanho_agulha = int(
+        config.get(
+            "TAMANHO_AGULHA",
+            36
+        )
     )
 
-    banco = carregar_banco()
+    # ------------------------------------------------------
+    # PRODUTOS
+    # ------------------------------------------------------
 
-    print(f"Produtos encontrados: {len(banco)}")
+    produtos = carregar_banco()
 
-    ranking = gerar_ranking(banco)
+    print(f"Produtos encontrados: {len(produtos)}")
 
-    print(f"Produtos elegíveis: {len(ranking)}")
+    # ------------------------------------------------------
+    # FILTRA APENAS PENDENTES
+    # ------------------------------------------------------
 
-    produtos_agulha = []
+    pendentes = []
 
-    posicao = 1
+    for produto in produtos:
 
-    for produto in ranking:
+        status = str(
+            produto.get(
+                "STATUS",
+                ""
+            )
+        ).strip().upper()
 
-        if posicao > tamanho_agulha:
-            break
+        ativo = str(
+            produto.get(
+                "ATIVO",
+                ""
+            )
+        ).strip().upper()
 
-        produtos_agulha.append([
+        if status != "PENDENTE":
+            continue
+
+        if ativo not in (
+            "TRUE",
+            "VERDADEIRO",
+            "SIM",
+            "1"
+        ):
+            continue
+
+        pendentes.append(produto)
+
+    print(
+        f"Produtos pendentes: {len(pendentes)}"
+    )
+
+    # ------------------------------------------------------
+    # RANKING
+    # ------------------------------------------------------
+
+    ranking = gerar_ranking(
+        pendentes
+    )
+
+    ranking = ranking[:tamanho_agulha]
+
+    print(
+        f"Selecionados: {len(ranking)}"
+    )
+
+    # ------------------------------------------------------
+    # COLUNAS
+    # ------------------------------------------------------
+
+    colunas = obter_colunas(
+        banco_sheet
+    )
+
+    agora = datetime.now(
+        FUSO
+    ).strftime(
+        "%d/%m/%Y %H:%M"
+    )
+
+    dados_agulha = []
+
+    # ------------------------------------------------------
+    # PREENCHE AGULHA
+    # ------------------------------------------------------
+
+    for posicao, produto in enumerate(
+        ranking,
+        start=1
+    ):
+
+        row_banco = produto.get(
+            "ROW_NUMBER"
+        )
+
+        linha = [
 
             posicao,
 
-            produto.get("ROW_NUMBER", ""),
+            row_banco,
 
-            produto.get("ID", ""),
+            produto.get(
+                "PRODUTO",
+                ""
+            ),
 
-            produto.get("PRODUTO", ""),
+            produto.get(
+                "ID",
+                ""
+            ),
 
-            produto.get("URL_ORIGEM", ""),
+            produto.get(
+                "URL_ORIGEM",
+                ""
+            ),
 
-            produto.get("LINK_AFILIADO", ""),
+            produto.get(
+                "LINK_AFILIADO",
+                ""
+            ),
 
-            "",     # PREÇO (Amapulse)
+            "",     # PREÇO
 
             "",     # PREÇO ANTIGO
 
@@ -63,27 +163,55 @@ def montar_agulha():
 
             "",     # ESTOQUE
 
-            ""      # ULTIMA_ATUALIZAÇÃO
+            agora   # ULTIMA_ATUALIZAÇÃO
 
-        ])
+        ]
 
-        posicao += 1
+        dados_agulha.append(
+            linha
+        )
 
-    escrever_agulha(produtos_agulha)
+        # ------------------------------------------
+        # ALTERA STATUS
+        # ------------------------------------------
+
+        atualizar_celula(
+
+            banco_sheet,
+
+            row_banco,
+
+            colunas["STATUS"],
+
+            "NA_AGULHA"
+
+        )
+
+    # ------------------------------------------------------
+    # ESCREVE AGULHA
+    # ------------------------------------------------------
+
+    escrever_agulha(
+        dados_agulha
+    )
 
     print()
 
-    print(f"{len(produtos_agulha)} produtos enviados para AGULHA.")
+    print(
+        "AGULHA ATUALIZADA COM SUCESSO."
+    )
 
-    print("Aguardando atualização do Amapulse...")
+    print(
+        f"{len(dados_agulha)} produto(s) enviados."
+    )
 
     print("=" * 60)
 
 
-# ==================================================
-# EXECUÇÃO
-# ==================================================
+# ==========================================================
+# TESTE
+# ==========================================================
 
 if __name__ == "__main__":
 
-    montar_agulha()
+    executar_coletor()
