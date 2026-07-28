@@ -8,6 +8,21 @@ class MagaluCollector:
     Coletor oficial da Magazine Você / Magazine Luiza.
     """
 
+    USER_AGENT = (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/138.0 Safari/537.36"
+    )
+
+    VIEWPORT = {
+        "width": 1366,
+        "height": 768
+    }
+
+    TIMEOUT = 60000
+
+    HEADLESS = True
+
     def _baixar_html(self, url: str) -> str:
         """
         Abre a página utilizando Playwright e retorna o HTML.
@@ -15,33 +30,31 @@ class MagaluCollector:
 
         with sync_playwright() as p:
 
-            browser = p.chromium.launch(
-                headless=True
-            )
+            browser = None
 
-            page = browser.new_page(
-                user_agent=(
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/138.0 Safari/537.36"
-                ),
-                viewport={
-                    "width": 1366,
-                    "height": 768
-                }
-            )
+            try:
 
-            page.goto(
-                url,
-                wait_until="networkidle",
-                timeout=60000
-            )
+                browser = p.chromium.launch(
+                    headless=self.HEADLESS
+                )
 
-            html = page.content()
+                page = browser.new_page(
+                    user_agent=self.USER_AGENT,
+                    viewport=self.VIEWPORT
+                )
 
-            browser.close()
+                page.goto(
+                    url,
+                    wait_until="networkidle",
+                    timeout=self.TIMEOUT
+                )
 
-            return html
+                return page.content()
+
+            finally:
+
+                if browser:
+                    browser.close()
 
     def _extrair_json(self, html: str) -> dict:
         """
@@ -55,25 +68,29 @@ class MagaluCollector:
         )
 
         if not match:
-            raise Exception("Não foi encontrado o JSON (__NEXT_DATA__).")
+            raise Exception("JSON (__NEXT_DATA__) não encontrado.")
 
         return json.loads(match.group(1))
 
     def _produto(self, dados: dict) -> dict:
         """
-        Retorna o objeto product.
+        Retorna apenas o objeto product.
         """
 
-        return (
-            dados["props"]
-                 ["pageProps"]
-                 ["data"]
-                 ["product"]
-        )
+        try:
+            return (
+                dados["props"]
+                     ["pageProps"]
+                     ["data"]
+                     ["product"]
+            )
+
+        except KeyError as e:
+            raise Exception(f"Estrutura inesperada da Magalu: {e}")
 
     def _montar_produto(self, produto: dict) -> dict:
         """
-        Converte o JSON da Magalu para um formato padrão.
+        Converte o JSON da Magalu para um formato único do projeto.
         """
 
         price = produto.get("price", {})
@@ -102,13 +119,13 @@ class MagaluCollector:
 
             "subcategoria": subcategory.get("name"),
 
-            "preco": float(price.get("price", 0)),
+            "preco": float(price.get("price") or 0),
 
-            "preco_pix": float(price.get("bestPrice", 0)),
+            "preco_pix": float(price.get("bestPrice") or 0),
 
-            "desconto": float(price.get("discount", 0)),
+            "desconto": float(price.get("discount") or 0),
 
-            "estoque": produto.get("available"),
+            "estoque": bool(produto.get("available")),
 
             "imagem": produto.get("image"),
 
@@ -117,7 +134,7 @@ class MagaluCollector:
             "parcelas": installment.get("quantity"),
 
             "valor_parcela": float(
-                installment.get("amount", 0)
+                installment.get("amount") or 0
             ),
 
             "avaliacao": rating.get("score"),
@@ -130,10 +147,20 @@ class MagaluCollector:
         Método principal do coletor.
         """
 
-        html = self._baixar_html(url)
+        try:
 
-        dados = self._extrair_json(html)
+            html = self._baixar_html(url)
 
-        produto = self._produto(dados)
+            dados = self._extrair_json(html)
 
-        return self._montar_produto(produto)
+            produto = self._produto(dados)
+
+            return self._montar_produto(produto)
+
+        except Exception as e:
+
+            return {
+                "erro": True,
+                "mensagem": str(e),
+                "url": url
+            }
