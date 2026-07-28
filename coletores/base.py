@@ -10,20 +10,30 @@ with sync_playwright() as p:
 
     page.goto(URL, wait_until="networkidle")
 
-    html = page.content()
+    scripts = page.locator("script")
+
+    print(f"Total de scripts: {scripts.count()}")
+
+    for i in range(scripts.count()):
+
+        script = scripts.nth(i)
+
+        try:
+            script_id = script.get_attribute("id")
+            script_type = script.get_attribute("type")
+
+            if script_id or script_type == "application/json":
+
+                print("=" * 80)
+                print(f"SCRIPT {i}")
+                print("id:", script_id)
+                print("type:", script_type)
+
+                texto = script.inner_text()
+
+                print(texto[:5000])
+
+        except Exception:
+            pass
 
     browser.close()
-
-    indice = html.find("240466500")
-
-    print(f"Índice: {indice}")
-
-    if indice != -1:
-
-        inicio = max(0, indice - 2500)
-        fim = indice + 6000
-
-        print(html[inicio:fim])
-
-    else:
-        print("Produto não encontrado.")
