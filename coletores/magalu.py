@@ -1,208 +1,77 @@
-"""
-==================================================
-COLETOR MAGALU / MAGAZINE VOCÊ
-==================================================
-
-Responsável por:
-
-- Baixar o HTML
-- Extrair informações do produto
-- Retornar um dicionário padronizado
-
-Todos os coletores do projeto devem seguir
-o mesmo formato de retorno.
-"""
-
-import json
+from playwright.sync_api import sync_playwright
 import re
 
-from bs4 import BeautifulSoup
-
-from coletores.base import obter_html
-
-
-# ==================================================
-# AUXILIAR
-# ==================================================
-
-def limpar_preco(valor):
-
-    """
-    Converte:
-
-    "R$ 1.299,90"
-
-    para
-
-    1299.90
-    """
-
-    if valor is None:
-        return None
-
-    if isinstance(valor, (int, float)):
-        return float(valor)
-
-    valor = (
-        str(valor)
-        .replace("R$", "")
-        .replace(".", "")
-        .replace(",", ".")
-        .strip()
-    )
-
-    try:
-        return float(valor)
-    except:
-        return None
-
-
-# ==================================================
-# JSON-LD
-# ==================================================
-
-def extrair_jsonld(soup):
-
-    scripts = soup.find_all(
-        "script",
-        type="application/ld+json"
-    )
-
-    for script in scripts:
-
-        try:
-
-            conteudo = json.loads(script.string)
-
-            if isinstance(conteudo, list):
-
-                for item in conteudo:
-
-                    if item.get("@type") == "Product":
-                        return item
-
-            elif conteudo.get("@type") == "Product":
-
-                return conteudo
-
-        except:
-
-            continue
-
-    return None
-
-
-# ==================================================
-# ESTOQUE
-# ==================================================
-
-def estoque_disponivel(texto):
-
-    if texto is None:
-        return False
-
-    texto = texto.lower()
-
-    palavras = [
-        "instock",
-        "in stock",
-        "disponível",
-        "disponivel"
-    ]
-
-    return any(
-        palavra in texto
-        for palavra in palavras
-    )
-
-
-# ==================================================
-# COLETA
-# ==================================================
 
 def coletar_produto(url):
 
-    html = obter_html(url)
+    with sync_playwright() as p:
 
-    soup = BeautifulSoup(
-        html,
-        "lxml"
+        browser = p.chromium.launch(
+            headless=True
+        )
+
+        page = browser.new_page()
+
+        print(f"Coletando: {url}")
+
+        page.goto(
+            url,
+            wait_until="networkidle",
+            timeout=60000
+        )
+
+        html = page.content()
+
+        browser.close()
+
+    dados = {}
+
+    # ==========================
+    # TÍTULO
+    # ==========================
+
+    titulo = re.search(
+        r'"title":"([^"]+)"',
+        html
     )
 
-    produto = {
+    if titulo:
+        dados["produto"] = titulo.group(1)
 
-        "produto": None,
-        "preco": None,
-        "preco_antigo": None,
-        "estoque": False,
-        "url": url,
-        "erro": None
+    # ==========================
+    # PREÇO
+    # ==========================
 
-    }
+    preco = re.search(
+        r'"price":([0-9.]+)',
+        html
+    )
 
-    try:
+    if preco:
+        dados["preco"] = float(preco.group(1))
 
-        dados = extrair_jsonld(soup)
+    # ==========================
+    # PREÇO PIX
+    # ==========================
 
-        if dados:
+    pix = re.search(
+        r'"totalAmount":([0-9.]+)',
+        html
+    )
 
-            produto["produto"] = dados.get("name")
+    if pix:
+        dados["preco_pix"] = float(pix.group(1))
 
-            offers = dados.get("offers")
+    # ==========================
+    # ESTOQUE
+    # ==========================
 
-            if isinstance(offers, dict):
+    estoque = re.search(
+        r'"available":(true|false)',
+        html
+    )
 
-                produto["preco"] = limpar_preco(
-                    offers.get("price")
-                )
+    if estoque:
+        dados["estoque"] = estoque.group(1) == "true"
 
-                disponibilidade = offers.get(
-                    "availability",
-                    ""
-                )
-
-                produto["estoque"] = estoque_disponivel(
-                    disponibilidade
-                )
-
-            elif isinstance(offers, list):
-
-                offer = offers[0]
-
-                produto["preco"] = limpar_preco(
-                    offer.get("price")
-                )
-
-                disponibilidade = offer.get(
-                    "availability",
-                    ""
-                )
-
-                produto["estoque"] = estoque_disponivel(
-                    disponibilidade
-                )
-
-    except Exception as erro:
-
-        produto["erro"] = str(erro)
-
-    return produto
-
-
-# ==================================================
-# TESTE
-# ==================================================
-
-if __name__ == "__main__":
-
-    url = "COLE_AQUI_UMA_URL_DA_MAGAZINE_VOCE"
-
-    resultado = coletar_produto(url)
-
-    print()
-
-    print("=" * 60)
-
-    print(resultado)
-
-    print("=" * 60)
+    return dados
