@@ -1,10 +1,13 @@
-from coletores.magalu import coletar_magalu
+from pprint import pprint
 
-url = "https://www.magazinevoce.com.br/magazinegrupaodapromocao/smartphone-samsung-a07-128gb-preto-4gb-ram-tela-67-cam-dupla-selfie-8mp/p/240466500/te/ga07/"
+from coletores.magalu import MagaluCollector
 
-dados = coletar_magalu(url)
 
-print()
+URL = "https://www.magazinevoce.com.br/magazinegrupaodapromocao/smartphone-samsung-a07-128gb-preto-4gb-ram-tela-67-cam-dupla-selfie-8mp/p/240466500/te/ga07/"
 
-for chave, valor in dados.items():
-    print(f"{chave}: {valor}")
+
+collector = MagaluCollector()
+
+produto = collector.coletar(URL)
+
+pprint(produto)
