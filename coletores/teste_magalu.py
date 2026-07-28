@@ -4,5 +4,7 @@ url = "https://www.magazinevoce.com.br/magazinegrupaodapromocao/smartphone-samsu
 
 dados = coletar_magalu(url)
 
+print()
+
 for chave, valor in dados.items():
     print(f"{chave}: {valor}")
