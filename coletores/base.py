@@ -14,21 +14,16 @@ with sync_playwright() as p:
 
     browser.close()
 
-    palavras = [
-        "240015700",
-        "240466500",
-        "listPrice",
-        "bestPrice",
-        "offers",
-        "videoDetail",
-        "video_uuid",
-        "graphql",
-        "ItemOffer",
-        "Smartphone Samsung A07"
-    ]
+    indice = html.find("240466500")
 
-    print("\n")
+    print(f"Índice: {indice}")
 
-    for palavra in palavras:
+    if indice != -1:
 
-        print(f"{palavra}: {palavra in html}")
+        inicio = max(0, indice - 2500)
+        fim = indice + 6000
+
+        print(html[inicio:fim])
+
+    else:
+        print("Produto não encontrado.")
