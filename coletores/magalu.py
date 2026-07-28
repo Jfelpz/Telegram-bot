@@ -1,87 +1,38 @@
 import json
-
+import re
 from playwright.sync_api import sync_playwright
 
 
-def _extrair_produto(next_data: dict) -> dict:
-    """
-    Extrai as informações úteis do JSON do Next.js.
-    """
+class MagaluCollector:
 
-    produto = next_data["props"]["pageProps"]["data"]["product"]
+    def _baixar_html(self, url: str) -> str:
+        """Abre a página usando Playwright e retorna o HTML."""
 
-    imagem = produto["image"]
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
 
-    if imagem:
-        imagem = (
-            imagem
-            .replace("{w}", "800")
-            .replace("{h}", "800")
+            page = browser.new_page(
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/138.0 Safari/537.36"
+            )
+
+            page.goto(url, wait_until="networkidle")
+
+            html = page.content()
+
+            browser.close()
+
+            return html
+
+    def _extrair_json(self, html: str) -> dict:
+        """Extrai o JSON do __NEXT_DATA__."""
+
+        match = re.search(
+            r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>',
+            html,
+            re.S
         )
 
-    return {
+        if not match:
+            raise Exception("JSON __NEXT_DATA__ não encontrado.")
 
-        "loja": "MAGALU",
-
-        "id": produto.get("variationId") or produto.get("id"),
-
-        "sku": produto["seller"].get("sku"),
-
-        "produto": produto["title"],
-
-        "descricao": produto.get("description"),
-
-        "marca": produto["brand"]["label"],
-
-        "categoria": produto["category"]["name"],
-
-        "subcategoria": produto["subcategory"]["name"],
-
-        "preco": float(produto["price"]["price"]),
-
-        "preco_pix": float(produto["price"]["bestPrice"]),
-
-        "desconto": float(produto["price"]["discount"]),
-
-        "estoque": produto["available"],
-
-        "imagem": imagem,
-
-        "link": produto["url"],
-
-        "parcelas": produto["installment"]["quantity"],
-
-        "valor_parcela": float(produto["installment"]["amount"]),
-
-        "avaliacao": produto["rating"]["score"],
-
-        "total_avaliacoes": produto["rating"]["count"]
-    }
-
-
-def coletar_magalu(url: str) -> dict:
-    """
-    Coleta todas as informações de um produto da Magalu.
-    """
-
-    with sync_playwright() as p:
-
-        browser = p.chromium.launch(
-            headless=True
-        )
-
-        page = browser.new_page()
-
-        page.goto(
-            url,
-            wait_until="networkidle",
-            timeout=60000
-        )
-
-        next_data = page.locator("#__NEXT_DATA__").inner_text()
-
-        browser.close()
-
-    dados = json.loads(next_data)
-
-    return _extrair_produto(dados)
+        return json.loads(match.group(1))
