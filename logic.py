@@ -65,11 +65,11 @@ def montar_mensagem(produto):
 
 🏪 Loja: {loja}
 
-💰 De: R$ {preco_antigo}
+💸 <s>R$ {preco_antigo}</s>
 
-💵 Por: <b>R$ {preco}</b>
+💰 <b>R$ {preco}</b>
 
-🏷 Desconto: {desconto}%
+🏷 {desconto}% OFF
 
 🛒 Comprar:
 {link}
@@ -93,13 +93,11 @@ def processar():
     if not config.get("BOT_ATIVO", True):
 
         print("Bot desligado.")
-
         return
 
     if not dentro_do_horario(config):
 
-        print("Fora do horário.")
-
+        print("Fora do horário permitido.")
         return
 
     desconto_minimo = float(
@@ -110,18 +108,19 @@ def processar():
 
     colunas = obter_colunas(banco_sheet)
 
-    for produto in produtos:
+    # começa na linha 2 porque a linha 1 é o cabeçalho
+    for linha, produto in enumerate(produtos, start=2):
 
         status = str(
             produto.get("STATUS", "")
-        ).upper().strip()
+        ).strip().upper()
 
         if status != "PRONTO":
             continue
 
         estoque = str(
             produto.get("ESTOQUE", "")
-        ).upper().strip()
+        ).strip().upper()
 
         if estoque not in (
             "TRUE",
@@ -146,20 +145,27 @@ def processar():
             desconto = 0
 
         if desconto < desconto_minimo:
+            continue
 
+        link = str(
+            produto.get("LINK_AFILIADO", "")
+        ).strip()
+
+        if not link.startswith("http"):
+            print("Link inválido.")
             continue
 
         mensagem = montar_mensagem(produto)
 
-        print()
+        print(f"Enviando: {produto.get('PRODUTO')}")
 
-        print("Enviando:")
+        resposta = enviar(mensagem)
 
-        print(produto["PRODUTO"])
+        if resposta.status_code != 200:
 
-        enviar(mensagem)
-
-        linha = produto["ROW_NUMBER"]
+            print("Erro ao enviar para o Telegram.")
+            print(resposta.text)
+            continue
 
         atualizar_celula(
             banco_sheet,
@@ -177,9 +183,10 @@ def processar():
 
         print("Produto enviado com sucesso.")
 
+        # envia apenas um produto por execução
         return
 
-    print("Nenhum produto disponível para postagem.")
+    print("Nenhum produto encontrado para postagem.")
 
 
 # =====================================================
@@ -187,5 +194,4 @@ def processar():
 # =====================================================
 
 if __name__ == "__main__":
-
     processar()
