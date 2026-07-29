@@ -1,6 +1,7 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+from atualizador import atualizar_produtos
 from logic import processar
 
 FUSO = ZoneInfo("America/Fortaleza")
@@ -17,6 +18,18 @@ def main():
     )
 
     print()
+
+    # ==========================================
+    # ETAPA 1 - Atualiza os produtos
+    # ==========================================
+
+    atualizar_produtos()
+
+    print()
+
+    # ==========================================
+    # ETAPA 2 - Publica no Telegram
+    # ==========================================
 
     processar()
 
