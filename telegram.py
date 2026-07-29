@@ -1,22 +1,43 @@
 import requests
+
 from config import TELEGRAM_TOKEN, CHAT_ID
 
-def enviar(mensagem):
-    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+
+def enviar(produto):
+    """
+    Envia uma promoção para o Telegram utilizando foto.
+    """
+
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendPhoto"
+
+    legenda = f"""
+🔥 <b>PROMOÇÃO</b>
+
+📦 <b>{produto['PRODUTO']}</b>
+
+💰 <b>Preço:</b> R$ {produto['PREÇO']}
+
+🏷 <b>Desconto:</b> {produto['DESCONTO']}%
+
+🏪 <b>Loja:</b> {produto['LOJA']}
+
+🛒 <a href="{produto['LINK_AFILIADO']}">COMPRAR AGORA</a>
+
+#promocao #{produto['LOJA'].lower()}
+"""
 
     payload = {
         "chat_id": CHAT_ID,
-        "text": mensagem,
-        "parse_mode": "HTML",
-        "disable_web_page_preview": False
+        "photo": produto["IMAGEM"],
+        "caption": legenda,
+        "parse_mode": "HTML"
     }
 
-    response = requests.post(url, data=payload)
+    resposta = requests.post(url, data=payload)
 
-    # Debug opcional (ajuda muito se algo falhar)
-    print("📨 Telegram status:", response.status_code)
+    print(f"Telegram: {resposta.status_code}")
 
-    if response.status_code != 200:
-        print("❌ Erro Telegram:", response.text)
+    if resposta.status_code != 200:
+        print(resposta.text)
 
-    return response
+    return resposta
