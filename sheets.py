@@ -2,7 +2,6 @@ import json
 import gspread
 
 from google.oauth2.service_account import Credentials
-
 from config import SHEET_ID, GOOGLE_CREDENTIALS
 
 
@@ -30,7 +29,6 @@ spreadsheet = client.open_by_key(SHEET_ID)
 # ==================================================
 
 banco_sheet = spreadsheet.worksheet("BANCO_DADOS")
-agulha_sheet = spreadsheet.worksheet("AGULHA")
 config_sheet = spreadsheet.worksheet("CONFIG")
 
 
@@ -39,21 +37,40 @@ config_sheet = spreadsheet.worksheet("CONFIG")
 # ==================================================
 
 def carregar_banco():
+    """
+    Carrega os produtos preservando o número da linha
+    da planilha.
+    """
 
-    return banco_sheet.get_all_records()
+    valores = banco_sheet.get_all_values()
+
+    if len(valores) <= 1:
+        return []
+
+    cabecalho = valores[0]
+
+    produtos = []
+
+    for numero_linha, linha in enumerate(valores[1:], start=2):
+
+        produto = {}
+
+        for indice, coluna in enumerate(cabecalho):
+
+            if indice < len(linha):
+                produto[coluna] = linha[indice]
+            else:
+                produto[coluna] = ""
+
+        produto["ROW_NUMBER"] = numero_linha
+
+        produtos.append(produto)
+
+    return produtos
 
 
 # ==================================================
-# CARREGAR AGULHA
-# ==================================================
-
-def carregar_agulha():
-
-    return agulha_sheet.get_all_records()
-
-
-# ==================================================
-# CARREGAR CONFIGURAÇÕES
+# CONFIGURAÇÕES
 # ==================================================
 
 def carregar_config():
@@ -70,7 +87,7 @@ def carregar_config():
         chave = linha[0].strip().upper()
         valor = linha[1].strip()
 
-        # BOOLEAN
+        # Boolean
         if valor.upper() in ("TRUE", "FALSE"):
 
             configuracoes[chave] = (
@@ -79,36 +96,29 @@ def carregar_config():
 
             continue
 
-        # INTEIRO
+        # Inteiro
         try:
-
             configuracoes[chave] = int(valor)
-
             continue
-
         except:
             pass
 
-        # FLOAT
+        # Float
         try:
-
             configuracoes[chave] = float(
                 valor.replace(",", ".")
             )
-
             continue
-
         except:
             pass
 
-        # TEXTO
         configuracoes[chave] = valor
 
     return configuracoes
 
 
 # ==================================================
-# COLUNAS
+# MAPA DAS COLUNAS
 # ==================================================
 
 def obter_colunas(aba):
@@ -125,88 +135,6 @@ def obter_colunas(aba):
 
 
 # ==================================================
-# ESCREVER AGULHA
-# ==================================================
-
-def escrever_agulha(produtos):
-
-    """
-    Recebe uma lista contendo:
-
-    POSIÇÃO
-    ROW_BANCO
-    PRODUTO
-    ID
-    URL_ORIGEM
-    LINK_AFILIADO
-    PREÇO
-    PREÇO_ANTIGO
-    DESCONTO
-    ESTOQUE
-    ULTIMA_ATUALIZAÇÃO
-    """
-
-    if not produtos:
-        return
-
-    agulha_sheet.update(
-        f"A2:K{len(produtos)+1}",
-        produtos
-    )
-
-
-# ==================================================
-# SINCRONIZA AGULHA -> BANCO
-# ==================================================
-
-def sincronizar_agulha_para_banco():
-
-    agulha = carregar_agulha()
-
-    colunas = obter_colunas(banco_sheet)
-
-    for produto in agulha:
-
-        try:
-
-            row = int(produto["ROW_BANCO"])
-
-        except:
-
-            continue
-
-        banco_sheet.update_cell(
-            row,
-            colunas["PREÇO"],
-            produto.get("PREÇO", "")
-        )
-
-        banco_sheet.update_cell(
-            row,
-            colunas["PREÇO_ANTIGO"],
-            produto.get("PREÇO_ANTIGO", "")
-        )
-
-        banco_sheet.update_cell(
-            row,
-            colunas["DESCONTO"],
-            produto.get("DESCONTO", "")
-        )
-
-        banco_sheet.update_cell(
-            row,
-            colunas["ESTOQUE"],
-            produto.get("ESTOQUE", "")
-        )
-
-        banco_sheet.update_cell(
-            row,
-            colunas["ULTIMA_ATUALIZAÇÃO"],
-            produto.get("ULTIMA_ATUALIZAÇÃO", "")
-        )
-
-
-# ==================================================
 # LOCALIZA LINHA PELO ID
 # ==================================================
 
@@ -214,17 +142,17 @@ def localizar_row_por_id(id_produto):
 
     produtos = carregar_banco()
 
-    for indice, produto in enumerate(produtos, start=2):
+    for produto in produtos:
 
         if str(produto.get("ID", "")).strip() == str(id_produto).strip():
 
-            return indice
+            return produto["ROW_NUMBER"]
 
     return None
 
 
 # ==================================================
-# ATUALIZAR CÉLULA
+# ATUALIZAR UMA CÉLULA
 # ==================================================
 
 def atualizar_celula(
@@ -242,7 +170,7 @@ def atualizar_celula(
 
 
 # ==================================================
-# ATUALIZAR VÁRIAS COLUNAS
+# ATUALIZAR VÁRIAS CÉLULAS
 # ==================================================
 
 def atualizar_linha(
@@ -279,19 +207,13 @@ if __name__ == "__main__":
     print("GOOGLE SHEETS CONECTADO")
     print("=" * 60)
 
-    print()
+    produtos = carregar_banco()
 
-    banco = carregar_banco()
-
-    print(f"BANCO_DADOS: {len(banco)} produtos")
-
-    agulha = carregar_agulha()
-
-    print(f"AGULHA: {len(agulha)} produtos")
+    print(f"Produtos encontrados: {len(produtos)}")
 
     print()
 
-    print("CONFIGURAÇÕES:")
+    print("CONFIGURAÇÕES")
 
     config = carregar_config()
 
@@ -301,15 +223,9 @@ if __name__ == "__main__":
 
     print()
 
-    print("COLUNAS BANCO_DADOS")
+    print("COLUNAS")
 
     print(obter_colunas(banco_sheet))
-
-    print()
-
-    print("COLUNAS AGULHA")
-
-    print(obter_colunas(agulha_sheet))
 
     print()
 
