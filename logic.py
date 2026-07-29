@@ -16,218 +16,171 @@ FUSO = ZoneInfo("America/Fortaleza")
 
 
 # =====================================================
-# VERIFICA HORÁRIO DE FUNCIONAMENTO
+# HORÁRIO DE FUNCIONAMENTO
 # =====================================================
 
 def dentro_do_horario(config):
 
-    agora = datetime.now(FUSO).time()
+    try:
 
-    hora_inicio = datetime.strptime(
-        config["HORA_INICIO"],
-        "%H:%M"
-    ).time()
+        inicio = datetime.strptime(
+            config.get("HORA_INICIO", "00:00"),
+            "%H:%M"
+        ).time()
 
-    hora_fim = datetime.strptime(
-        config["HORA_FIM"][:5],
-        "%H:%M"
-    ).time()
+        fim = datetime.strptime(
+            config.get("HORA_FIM", "23:59"),
+            "%H:%M"
+        ).time()
 
-    return hora_inicio <= agora <= hora_fim
+        agora = datetime.now(FUSO).time()
+
+        return inicio <= agora <= fim
+
+    except:
+
+        return True
 
 
 # =====================================================
-# PROCESSAMENTO PRINCIPAL
+# MENSAGEM TELEGRAM
+# =====================================================
+
+def montar_mensagem(produto):
+
+    nome = produto.get("PRODUTO", "")
+
+    preco = produto.get("PREÇO", "")
+
+    preco_antigo = produto.get("PREÇO_ANTIGO", "")
+
+    desconto = produto.get("DESCONTO", "")
+
+    loja = produto.get("LOJA", "")
+
+    link = produto.get("LINK_AFILIADO", "")
+
+    mensagem = f"""
+🔥 <b>{nome}</b>
+
+🏪 Loja: {loja}
+
+💰 De: R$ {preco_antigo}
+
+💵 Por: <b>R$ {preco}</b>
+
+🏷 Desconto: {desconto}%
+
+🛒 Comprar:
+{link}
+"""
+
+    return mensagem.strip()
+
+
+# =====================================================
+# PROCESSAMENTO
 # =====================================================
 
 def processar():
 
     print("=" * 60)
-    print("PROCESSANDO PUBLICAÇÕES")
+    print("INICIANDO PUBLICAÇÃO")
     print("=" * 60)
 
     config = carregar_config()
 
-    # -------------------------------------------------
-
     if not config.get("BOT_ATIVO", True):
 
-        print("Bot desativado.")
+        print("Bot desligado.")
 
         return
-
-    # -------------------------------------------------
 
     if not dentro_do_horario(config):
 
-        print("Fora do horário permitido.")
+        print("Fora do horário.")
 
         return
 
-    # -------------------------------------------------
-
     desconto_minimo = float(
-        config.get(
-            "DESCONTO_MINIMO",
-            15
-        )
+        config.get("DESCONTO_MINIMO", 0)
     )
 
     produtos = carregar_banco()
 
-    colunas = obter_colunas(
-        banco_sheet
-    )
-
-    enviados = 0
-
-    # -------------------------------------------------
+    colunas = obter_colunas(banco_sheet)
 
     for produto in produtos:
 
         status = str(
-            produto.get(
-                "STATUS",
-                ""
-            )
-        ).strip().upper()
+            produto.get("STATUS", "")
+        ).upper().strip()
 
         if status != "PRONTO":
             continue
 
-        nome = str(
-            produto.get(
-                "PRODUTO",
-                ""
-            )
-        ).strip()
-
         estoque = str(
-            produto.get(
-                "ESTOQUE",
-                ""
-            )
-        ).strip().upper()
+            produto.get("ESTOQUE", "")
+        ).upper().strip()
 
-        if estoque != "EM ESTOQUE":
-
-            print(
-                f"Sem estoque: {nome}"
-            )
-
+        if estoque not in (
+            "TRUE",
+            "SIM",
+            "EM ESTOQUE",
+            "DISPONIVEL",
+            "DISPONÍVEL",
+            "1"
+        ):
             continue
-
-        desconto = str(
-            produto.get(
-                "DESCONTO",
-                ""
-            )
-        ).replace(
-            "%",
-            ""
-        ).replace(
-            ",",
-            "."
-        )
 
         try:
 
-            desconto_float = float(
-                desconto
+            desconto = float(
+                str(
+                    produto.get("DESCONTO", "0")
+                ).replace("%", "").replace(",", ".")
             )
 
         except:
 
-            desconto_float = 0
+            desconto = 0
 
-        if desconto_float < desconto_minimo:
-
-            print(
-                f"Desconto insuficiente: {nome}"
-            )
+        if desconto < desconto_minimo:
 
             continue
 
-        link = str(
-            produto.get(
-                "LINK_AFILIADO",
-                ""
-            )
-        ).strip()
+        mensagem = montar_mensagem(produto)
 
-        if not link.startswith("http"):
+        print()
 
-            print(
-                f"Link inválido: {nome}"
-            )
+        print("Enviando:")
 
-            continue
+        print(produto["PRODUTO"])
 
-        preco = produto.get(
-            "PREÇO",
-            ""
+        enviar(mensagem)
+
+        linha = produto["ROW_NUMBER"]
+
+        atualizar_celula(
+            banco_sheet,
+            linha,
+            colunas["STATUS"],
+            "ENVIADO"
         )
 
-        preco_antigo = produto.get(
-            "PREÇO_ANTIGO",
-            ""
+        atualizar_celula(
+            banco_sheet,
+            linha,
+            colunas["DATA_POSTAGEM"],
+            datetime.now(FUSO).strftime("%d/%m/%Y %H:%M")
         )
 
-        categoria = produto.get(
-            "CATEGORIA",
-            ""
-        )
+        print("Produto enviado com sucesso.")
 
-        loja = produto.get(
-            "LOJA",
-            ""
-        )
+        return
 
-        # -------------------------------------------------
-# Monta mensagem
-# -------------------------------------------------
+    print("Nenhum produto disponível para postagem.")
 
-mensagem = montar_mensagem(produto)
-
-print(f"Enviando {nome}")
-
-try:
-
-    enviar(mensagem)
-
-except Exception as erro:
-
-    print(erro)
-
-    continue
-
-row = int(produto["ROW_NUMBER"])
-
-atualizar_celula(
-
-    banco_sheet,
-
-    row,
-
-    colunas["STATUS"],
-
-    "ENVIADO"
-
-)
-
-atualizar_celula(
-
-    banco_sheet,
-
-    row,
-
-    colunas["DATA_POSTAGEM"],
-
-    datetime.now(FUSO).strftime(
-        "%d/%m/%Y %H:%M"
-    )
-
-)
 
 # =====================================================
 # TESTE
