@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
- run-bot:
+  run-bot:
     runs-on: ubuntu-latest
 
     steps:
@@ -27,7 +27,7 @@ jobs:
         run: |
           python -m playwright install chromium
 
-      - name: Executar teste Magalu
+      - name: Executar Bot
         env:
           SHEET_ID: ${{ secrets.SHEET_ID }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
@@ -36,4 +36,4 @@ jobs:
           SCRAPER_API_KEY: ${{ secrets.SCRAPER_API_KEY }}
 
         run: |
-          python -m coletores.teste_magalu
+          python bot.py
