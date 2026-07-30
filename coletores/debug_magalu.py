@@ -50,3 +50,11 @@ print("OBJETO INSTALLMENT")
 print("=" * 80)
 
 pprint(produto.get("installment"))
+
+print()
+
+print("=" * 80)
+print("RESULTADO DO COLETOR")
+print("=" * 80)
+
+pprint(collector.coletar(URL))
