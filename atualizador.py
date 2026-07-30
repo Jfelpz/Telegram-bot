@@ -72,7 +72,7 @@ def atualizar_produtos():
             {
 
                 # ==========================================
-                # INFORMAÇÕES DO PRODUTO
+                # PRODUTO
                 # ==========================================
 
                 colunas["LOJA"]:
@@ -89,13 +89,13 @@ def atualizar_produtos():
                 # ==========================================
 
                 colunas["PREÇO"]:
-                    dados.get("preco", ""),
+                    round(float(dados.get("preco", 0)), 2),
 
                 colunas["PREÇO_ANTIGO"]:
-                    dados.get("preco_antigo", ""),
+                    round(float(dados.get("preco_antigo", 0)), 2),
 
                 colunas["DESCONTO"]:
-                    dados.get("desconto", ""),
+                    round(float(dados.get("desconto", 0)), 2),
 
                 # ==========================================
                 # ESTOQUE
@@ -122,31 +122,20 @@ def atualizar_produtos():
         atualizados += 1
 
         print("✔ Produto atualizado")
-
-        print(
-            f"Preço antigo: R$ {dados.get('preco_antigo')}"
-        )
-
-        print(
-            f"Preço atual : R$ {dados.get('preco')}"
-        )
-
-        print(
-            f"Preço Pix   : R$ {dados.get('preco_pix')}"
-        )
-
-        print(
-            f"Desconto real: {dados.get('desconto')}%"
-        )
+        print("-" * 40)
+        print(f"Produto       : {dados.get('produto')}")
+        print(f"Preço antigo  : R$ {dados.get('preco_antigo'):.2f}")
+        print(f"Preço atual   : R$ {dados.get('preco'):.2f}")
+        print(f"Preço PIX     : R$ {dados.get('preco_pix'):.2f}")
+        print(f"Desconto real : {dados.get('desconto'):.2f}%")
+        print(f"Estoque       : {'SIM' if dados.get('estoque') else 'NÃO'}")
+        print("-" * 40)
 
     print()
-
     print("=" * 60)
     print("FINALIZADO")
     print("=" * 60)
-
     print(f"Produtos atualizados: {atualizados}")
-
     print(f"Erros: {erros}")
 
 
