@@ -123,9 +123,9 @@ def processar():
         print("Ativo   :", produto.get("ATIVO"))
         print("Link    :", produto.get("LINK_AFILIADO"))
 
-        # =================================================
+        # ==========================================
         # STATUS
-        # =================================================
+        # ==========================================
 
         status = str(
             produto.get("STATUS", "")
@@ -134,12 +134,11 @@ def processar():
         if status != "PENDENTE":
 
             print(f"IGNORADO -> STATUS = {status}")
-
             continue
 
-        # =================================================
+        # ==========================================
         # ATIVO
-        # =================================================
+        # ==========================================
 
         ativo = str(
             produto.get("ATIVO", "")
@@ -153,12 +152,11 @@ def processar():
         ):
 
             print("IGNORADO -> PRODUTO INATIVO")
-
             continue
 
-        # =================================================
+        # ==========================================
         # ESTOQUE
-        # =================================================
+        # ==========================================
 
         estoque = str(
             produto.get("ESTOQUE", "")
@@ -174,19 +172,25 @@ def processar():
         ):
 
             print("IGNORADO -> SEM ESTOQUE")
-
             continue
 
-        # =================================================
+        # ==========================================
         # DESCONTO
-        # =================================================
+        # ==========================================
 
         try:
 
             desconto = float(
+
                 str(
-                    produto.get("DESCONTO", "0")
+
+                    produto.get(
+                        "DESCONTO",
+                        "0"
+                    )
+
                 ).replace("%", "").replace(",", ".")
+
             )
 
         except:
@@ -201,9 +205,9 @@ def processar():
 
             continue
 
-        # =================================================
+        # ==========================================
         # LINK
-        # =================================================
+        # ==========================================
 
         link = str(
             produto.get(
@@ -215,12 +219,11 @@ def processar():
         if not link.startswith("http"):
 
             print("IGNORADO -> LINK INVÁLIDO")
-
             continue
 
-        # =================================================
+        # ==========================================
         # ENVIO
-        # =================================================
+        # ==========================================
 
         print("\nTODOS OS FILTROS PASSARAM")
         print("ENVIANDO PARA O TELEGRAM...")
@@ -245,6 +248,14 @@ def processar():
 
             continue
 
+        agora = datetime.now(FUSO).strftime(
+            "%d/%m/%Y %H:%M"
+        )
+
+        # ==========================================
+        # ATUALIZA A PLANILHA
+        # ==========================================
+
         atualizar_celula(
             banco_sheet,
             linha,
@@ -256,14 +267,22 @@ def processar():
             banco_sheet,
             linha,
             colunas["DATA_POSTAGEM"],
-            datetime.now(FUSO).strftime(
-                "%d/%m/%Y %H:%M"
-            )
+            agora
+        )
+
+        atualizar_celula(
+            banco_sheet,
+            linha,
+            colunas["ULTIMO_DESCONTO_ENVIADO"],
+            round(desconto, 2)
         )
 
         print("\nPRODUTO ENVIADO COM SUCESSO")
+        print(f"Data da postagem........: {agora}")
+        print(f"Último desconto enviado.: {desconto:.2f}%")
+        print("Status..................: ENVIADO")
 
-        # Apenas um envio por execução
+        # Envia apenas um produto por execução
         return
 
     print("\nNENHUM PRODUTO ENCONTRADO PARA POSTAGEM")
