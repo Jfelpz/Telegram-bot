@@ -71,6 +71,15 @@ def atualizar_produtos():
 
             {
 
+                colunas["LOJA"]:
+                    dados.get("loja", ""),
+
+                colunas["PRODUTO"]:
+                    dados.get("produto", ""),
+
+                colunas["CATEGORIA"]:
+                    dados.get("categoria", ""),
+
                 colunas["PREÇO"]:
                     dados.get("preco", ""),
 
@@ -82,24 +91,6 @@ def atualizar_produtos():
                     if dados.get("estoque")
                     else "SEM ESTOQUE",
 
-                colunas["MARCA"]:
-                    dados.get("marca", ""),
-
-                colunas["CATEGORIA"]:
-                    dados.get("categoria", ""),
-
-                colunas["SUBCATEGORIA"]:
-                    dados.get("subcategoria", ""),
-
-                colunas["IMAGEM"]:
-                    dados.get("imagem", ""),
-
-                colunas["AVALIAÇÃO"]:
-                    dados.get("avaliacao", ""),
-
-                colunas["TOTAL_AVALIAÇÕES"]:
-                    dados.get("total_avaliacoes", ""),
-
                 colunas["ULTIMA_ATUALIZAÇÃO"]:
                     datetime.now(FUSO).strftime("%d/%m/%Y %H:%M")
 
@@ -109,7 +100,7 @@ def atualizar_produtos():
 
         atualizados += 1
 
-        print("✔ Atualizado")
+        print("✔ Produto atualizado")
 
     print()
 
