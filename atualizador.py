@@ -41,7 +41,6 @@ def atualizar_produtos():
 
         print()
         print(f"[{linha}] Atualizando...")
-
         print(url)
 
         try:
@@ -74,9 +73,6 @@ def atualizar_produtos():
 
                 colunas["PREÇO"]:
                     dados.get("preco", ""),
-
-                colunas["PREÇO_PIX"]:
-                    dados.get("preco_pix", ""),
 
                 colunas["DESCONTO"]:
                     dados.get("desconto", ""),
