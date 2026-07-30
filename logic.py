@@ -49,15 +49,10 @@ def dentro_do_horario(config):
 def montar_mensagem(produto):
 
     nome = produto.get("PRODUTO", "")
-
     preco = produto.get("PREÇO", "")
-
     preco_antigo = produto.get("PREÇO_ANTIGO", "")
-
     desconto = produto.get("DESCONTO", "")
-
     loja = produto.get("LOJA", "")
-
     link = produto.get("LINK_AFILIADO", "")
 
     mensagem = f"""
@@ -90,14 +85,23 @@ def processar():
 
     config = carregar_config()
 
+    print("\nCONFIGURAÇÕES")
+
+    print("BOT_ATIVO:", config.get("BOT_ATIVO"))
+    print("DESCONTO_MINIMO:", config.get("DESCONTO_MINIMO"))
+    print("HORA_INICIO:", config.get("HORA_INICIO"))
+    print("HORA_FIM:", config.get("HORA_FIM"))
+
     if not config.get("BOT_ATIVO", True):
 
-        print("Bot desligado.")
+        print("\nBOT DESLIGADO")
+
         return
 
     if not dentro_do_horario(config):
 
-        print("Fora do horário permitido.")
+        print("\nFORA DO HORÁRIO")
+
         return
 
     desconto_minimo = float(
@@ -106,16 +110,30 @@ def processar():
 
     produtos = carregar_banco()
 
+    print(f"\nProdutos encontrados: {len(produtos)}")
+
     colunas = obter_colunas(banco_sheet)
 
-    # começa na linha 2 porque a linha 1 é o cabeçalho
     for linha, produto in enumerate(produtos, start=2):
+
+        print("\n" + "=" * 60)
+        print(f"LINHA {linha}")
+
+        print("Produto:", produto.get("PRODUTO"))
+        print("STATUS:", produto.get("STATUS"))
+        print("ESTOQUE:", produto.get("ESTOQUE"))
+        print("DESCONTO:", produto.get("DESCONTO"))
+        print("ATIVO:", produto.get("ATIVO"))
+        print("LINK:", produto.get("LINK_AFILIADO"))
 
         status = str(
             produto.get("STATUS", "")
         ).strip().upper()
 
         if status != "PRONTO":
+
+            print("IGNORADO -> STATUS DIFERENTE DE PRONTO")
+
             continue
 
         estoque = str(
@@ -130,14 +148,24 @@ def processar():
             "DISPONÍVEL",
             "1"
         ):
+
+            print("IGNORADO -> SEM ESTOQUE")
+
             continue
 
         try:
 
             desconto = float(
+
                 str(
-                    produto.get("DESCONTO", "0")
+
+                    produto.get(
+                        "DESCONTO",
+                        "0"
+                    )
+
                 ).replace("%", "").replace(",", ".")
+
             )
 
         except:
@@ -145,48 +173,74 @@ def processar():
             desconto = 0
 
         if desconto < desconto_minimo:
+
+            print(
+                f"IGNORADO -> DESCONTO ({desconto}) MENOR QUE ({desconto_minimo})"
+            )
+
             continue
 
         link = str(
-            produto.get("LINK_AFILIADO", "")
+            produto.get(
+                "LINK_AFILIADO",
+                ""
+            )
         ).strip()
 
         if not link.startswith("http"):
-            print("Link inválido.")
+
+            print("IGNORADO -> LINK INVÁLIDO")
+
             continue
+
+        print("\nTODOS OS FILTROS PASSARAM")
+        print("ENVIANDO PARA O TELEGRAM...")
 
         mensagem = montar_mensagem(produto)
 
-        print(f"Enviando: {produto.get('PRODUTO')}")
-
         resposta = enviar(mensagem)
+
+        print("Status Telegram:", resposta.status_code)
 
         if resposta.status_code != 200:
 
-            print("Erro ao enviar para o Telegram.")
+            print("ERRO TELEGRAM")
+
             print(resposta.text)
+
             continue
 
         atualizar_celula(
+
             banco_sheet,
+
             linha,
+
             colunas["STATUS"],
+
             "ENVIADO"
+
         )
 
         atualizar_celula(
+
             banco_sheet,
+
             linha,
+
             colunas["DATA_POSTAGEM"],
-            datetime.now(FUSO).strftime("%d/%m/%Y %H:%M")
+
+            datetime.now(FUSO).strftime(
+                "%d/%m/%Y %H:%M"
+            )
+
         )
 
-        print("Produto enviado com sucesso.")
+        print("\nPRODUTO ENVIADO COM SUCESSO")
 
-        # envia apenas um produto por execução
         return
 
-    print("Nenhum produto encontrado para postagem.")
+    print("\nNENHUM PRODUTO ENCONTRADO PARA POSTAGEM")
 
 
 # =====================================================
@@ -194,4 +248,5 @@ def processar():
 # =====================================================
 
 if __name__ == "__main__":
+
     processar()
