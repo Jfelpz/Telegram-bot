@@ -57,7 +57,7 @@ def atualizar_produtos():
 
         if dados.get("erro"):
 
-            print(dados["mensagem"])
+            print("Erro:", dados["mensagem"])
 
             erros += 1
 
@@ -71,6 +71,10 @@ def atualizar_produtos():
 
             {
 
+                # ==========================================
+                # INFORMAÇÕES DO PRODUTO
+                # ==========================================
+
                 colunas["LOJA"]:
                     dados.get("loja", ""),
 
@@ -80,19 +84,36 @@ def atualizar_produtos():
                 colunas["CATEGORIA"]:
                     dados.get("categoria", ""),
 
+                # ==========================================
+                # PREÇOS
+                # ==========================================
+
                 colunas["PREÇO"]:
                     dados.get("preco", ""),
 
+                colunas["PREÇO_ANTIGO"]:
+                    dados.get("preco_antigo", ""),
+
                 colunas["DESCONTO"]:
                     dados.get("desconto", ""),
+
+                # ==========================================
+                # ESTOQUE
+                # ==========================================
 
                 colunas["ESTOQUE"]:
                     "EM ESTOQUE"
                     if dados.get("estoque")
                     else "SEM ESTOQUE",
 
+                # ==========================================
+                # DATA
+                # ==========================================
+
                 colunas["ULTIMA_ATUALIZAÇÃO"]:
-                    datetime.now(FUSO).strftime("%d/%m/%Y %H:%M")
+                    datetime.now(FUSO).strftime(
+                        "%d/%m/%Y %H:%M"
+                    )
 
             }
 
@@ -101,6 +122,22 @@ def atualizar_produtos():
         atualizados += 1
 
         print("✔ Produto atualizado")
+
+        print(
+            f"Preço antigo: R$ {dados.get('preco_antigo')}"
+        )
+
+        print(
+            f"Preço atual : R$ {dados.get('preco')}"
+        )
+
+        print(
+            f"Preço Pix   : R$ {dados.get('preco_pix')}"
+        )
+
+        print(
+            f"Desconto real: {dados.get('desconto')}%"
+        )
 
     print()
 
