@@ -19,24 +19,26 @@ def main():
 
     print()
 
-    # ==========================================
-    # ETAPA 1 - Atualiza os produtos
-    # ==========================================
+    # ===========================================
+    # ETAPA 1
+    # Atualiza todos os produtos
+    # ===========================================
 
     atualizar_produtos()
 
     print()
 
-    # ==========================================
-    # ETAPA 2 - Publica no Telegram
-    # ==========================================
+    # ===========================================
+    # ETAPA 2
+    # Procura promoções e publica
+    # ===========================================
 
     processar()
 
     print()
 
     print("=" * 60)
-    print("FINALIZADO")
+    print("BOT FINALIZADO")
     print("=" * 60)
 
 
