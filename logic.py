@@ -86,7 +86,6 @@ def processar():
     config = carregar_config()
 
     print("\nCONFIGURAÇÕES")
-
     print("BOT_ATIVO:", config.get("BOT_ATIVO"))
     print("DESCONTO_MINIMO:", config.get("DESCONTO_MINIMO"))
     print("HORA_INICIO:", config.get("HORA_INICIO"))
@@ -95,13 +94,11 @@ def processar():
     if not config.get("BOT_ATIVO", True):
 
         print("\nBOT DESLIGADO")
-
         return
 
     if not dentro_do_horario(config):
 
         print("\nFORA DO HORÁRIO")
-
         return
 
     desconto_minimo = float(
@@ -119,12 +116,16 @@ def processar():
         print("\n" + "=" * 60)
         print(f"LINHA {linha}")
 
-        print("Produto:", produto.get("PRODUTO"))
-        print("STATUS:", produto.get("STATUS"))
-        print("ESTOQUE:", produto.get("ESTOQUE"))
-        print("DESCONTO:", produto.get("DESCONTO"))
-        print("ATIVO:", produto.get("ATIVO"))
-        print("LINK:", produto.get("LINK_AFILIADO"))
+        print("Produto :", produto.get("PRODUTO"))
+        print("Status  :", produto.get("STATUS"))
+        print("Estoque :", produto.get("ESTOQUE"))
+        print("Desconto:", produto.get("DESCONTO"))
+        print("Ativo   :", produto.get("ATIVO"))
+        print("Link    :", produto.get("LINK_AFILIADO"))
+
+        # =================================================
+        # STATUS
+        # =================================================
 
         status = str(
             produto.get("STATUS", "")
@@ -132,9 +133,32 @@ def processar():
 
         if status != "PENDENTE":
 
-            print("PENDENTE -> STATUS DIFERENTE DE PRONTO")
+            print(f"IGNORADO -> STATUS = {status}")
 
             continue
+
+        # =================================================
+        # ATIVO
+        # =================================================
+
+        ativo = str(
+            produto.get("ATIVO", "")
+        ).strip().upper()
+
+        if ativo not in (
+            "TRUE",
+            "VERDADEIRO",
+            "SIM",
+            "1"
+        ):
+
+            print("IGNORADO -> PRODUTO INATIVO")
+
+            continue
+
+        # =================================================
+        # ESTOQUE
+        # =================================================
 
         estoque = str(
             produto.get("ESTOQUE", "")
@@ -153,19 +177,16 @@ def processar():
 
             continue
 
+        # =================================================
+        # DESCONTO
+        # =================================================
+
         try:
 
             desconto = float(
-
                 str(
-
-                    produto.get(
-                        "DESCONTO",
-                        "0"
-                    )
-
+                    produto.get("DESCONTO", "0")
                 ).replace("%", "").replace(",", ".")
-
             )
 
         except:
@@ -175,10 +196,14 @@ def processar():
         if desconto < desconto_minimo:
 
             print(
-                f"IGNORADO -> DESCONTO ({desconto}) MENOR QUE ({desconto_minimo})"
+                f"IGNORADO -> DESCONTO ({desconto:.2f}%) MENOR QUE ({desconto_minimo:.2f}%)"
             )
 
             continue
+
+        # =================================================
+        # LINK
+        # =================================================
 
         link = str(
             produto.get(
@@ -193,6 +218,10 @@ def processar():
 
             continue
 
+        # =================================================
+        # ENVIO
+        # =================================================
+
         print("\nTODOS OS FILTROS PASSARAM")
         print("ENVIANDO PARA O TELEGRAM...")
 
@@ -204,40 +233,37 @@ def processar():
 
         if resposta.status_code != 200:
 
-            print("ERRO TELEGRAM")
-
+            print("ERRO AO ENVIAR")
             print(resposta.text)
+
+            atualizar_celula(
+                banco_sheet,
+                linha,
+                colunas["STATUS"],
+                "ERRO"
+            )
 
             continue
 
         atualizar_celula(
-
             banco_sheet,
-
             linha,
-
             colunas["STATUS"],
-
             "ENVIADO"
-
         )
 
         atualizar_celula(
-
             banco_sheet,
-
             linha,
-
             colunas["DATA_POSTAGEM"],
-
             datetime.now(FUSO).strftime(
                 "%d/%m/%Y %H:%M"
             )
-
         )
 
         print("\nPRODUTO ENVIADO COM SUCESSO")
 
+        # Apenas um envio por execução
         return
 
     print("\nNENHUM PRODUTO ENCONTRADO PARA POSTAGEM")
