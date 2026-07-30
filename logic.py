@@ -130,9 +130,9 @@ def processar():
             produto.get("STATUS", "")
         ).strip().upper()
 
-        if status != "PRONTO":
+        if status != "PENDENTE":
 
-            print("IGNORADO -> STATUS DIFERENTE DE PRONTO")
+            print("PENDENTE -> STATUS DIFERENTE DE PRONTO")
 
             continue
 
