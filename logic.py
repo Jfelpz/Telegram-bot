@@ -64,7 +64,7 @@ def montar_mensagem(produto):
 
 💰 <b>R$ {preco}</b>
 
-🏷 {desconto}% OFF
+🏷 {desconto} OFF
 
 🛒 Comprar:
 {link}
