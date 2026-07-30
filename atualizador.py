@@ -16,10 +16,11 @@ FUSO = ZoneInfo("America/Fortaleza")
 # CONFIGURAÇÃO
 # =====================================================
 
-AUMENTO_MINIMO_REPOSTAGEM = 3.0  # porcentagem mínima para repostar
+AUMENTO_MINIMO_REPOSTAGEM = 3.0
+
 
 # =====================================================
-# ATUALIZADOR DE PRODUTOS
+# ATUALIZADOR
 # =====================================================
 
 def atualizar_produtos():
@@ -67,20 +68,8 @@ def atualizar_produtos():
             continue
 
         # =====================================================
-        # DESCONTO ANTIGO
+        # DESCONTO NOVO
         # =====================================================
-
-        try:
-
-            desconto_antigo = float(
-                str(
-                    produto.get("DESCONTO", 0)
-                ).replace(",", ".")
-            )
-
-        except:
-
-            desconto_antigo = 0.0
 
         desconto_novo = round(
             float(dados.get("desconto", 0)),
@@ -88,31 +77,61 @@ def atualizar_produtos():
         )
 
         # =====================================================
-        # STATUS
+        # ÚLTIMO DESCONTO ENVIADO
         # =====================================================
 
+        try:
+
+            ultimo_desconto = float(
+                str(
+                    produto.get(
+                        "ULTIMO_DESCONTO_ENVIADO",
+                        0
+                    )
+                ).replace(",", ".")
+            )
+
+        except:
+
+            ultimo_desconto = 0.0
+
         status = str(
-            produto.get("STATUS", "")
+            produto.get(
+                "STATUS",
+                ""
+            )
         ).strip().upper()
 
         novo_status = status
 
+        # =====================================================
+        # REPOSTAGEM
+        # =====================================================
+
         if status == "ENVIADO":
 
-            if (
-                desconto_novo - desconto_antigo
-            ) >= AUMENTO_MINIMO_REPOSTAGEM:
+            if desconto_novo >= (
+                ultimo_desconto + AUMENTO_MINIMO_REPOSTAGEM
+            ):
 
                 novo_status = "PENDENTE"
 
                 print(
-                    f"↻ Repostagem ativada "
-                    f"({desconto_antigo:.2f}% -> {desconto_novo:.2f}%)"
+                    f"↻ Repostagem liberada "
+                    f"({ultimo_desconto:.2f}% -> {desconto_novo:.2f}%)"
                 )
 
         elif status == "PAUSADO":
 
             novo_status = "PAUSADO"
+
+        # =====================================================
+        # SEM ESTOQUE
+        # =====================================================
+
+        if not dados.get("estoque"):
+
+            novo_status = "SEM_ESTOQUE"
 
         # =====================================================
         # ATUALIZA PLANILHA
@@ -126,10 +145,6 @@ def atualizar_produtos():
 
             {
 
-                # ==========================================
-                # PRODUTO
-                # ==========================================
-
                 colunas["LOJA"]:
                     dados.get("loja", ""),
 
@@ -138,10 +153,6 @@ def atualizar_produtos():
 
                 colunas["CATEGORIA"]:
                     dados.get("categoria", ""),
-
-                # ==========================================
-                # PREÇOS
-                # ==========================================
 
                 colunas["PREÇO"]:
                     round(
@@ -162,25 +173,13 @@ def atualizar_produtos():
                 colunas["DESCONTO"]:
                     desconto_novo,
 
-                # ==========================================
-                # ESTOQUE
-                # ==========================================
-
                 colunas["ESTOQUE"]:
                     "EM ESTOQUE"
                     if dados.get("estoque")
                     else "SEM ESTOQUE",
 
-                # ==========================================
-                # STATUS
-                # ==========================================
-
                 colunas["STATUS"]:
                     novo_status,
-
-                # ==========================================
-                # DATA
-                # ==========================================
 
                 colunas["ULTIMA_ATUALIZAÇÃO"]:
                     datetime.now(FUSO).strftime(
@@ -194,15 +193,16 @@ def atualizar_produtos():
         atualizados += 1
 
         print("✔ Produto atualizado")
-        print("-" * 40)
-        print(f"Produto       : {dados.get('produto')}")
-        print(f"Preço antigo  : R$ {dados.get('preco_antigo'):.2f}")
-        print(f"Preço atual   : R$ {dados.get('preco'):.2f}")
-        print(f"Preço PIX     : R$ {dados.get('preco_pix'):.2f}")
-        print(f"Desconto real : {desconto_novo:.2f}%")
-        print(f"Estoque       : {'SIM' if dados.get('estoque') else 'NÃO'}")
-        print(f"Status        : {novo_status}")
-        print("-" * 40)
+        print("-" * 50)
+        print(f"Produto................: {dados.get('produto')}")
+        print(f"Preço antigo...........: R$ {dados.get('preco_antigo'):.2f}")
+        print(f"Preço atual............: R$ {dados.get('preco'):.2f}")
+        print(f"Preço PIX..............: R$ {dados.get('preco_pix'):.2f}")
+        print(f"Desconto atual.........: {desconto_novo:.2f}%")
+        print(f"Último enviado.........: {ultimo_desconto:.2f}%")
+        print(f"Estoque................: {'SIM' if dados.get('estoque') else 'NÃO'}")
+        print(f"Status.................: {novo_status}")
+        print("-" * 50)
 
     print()
     print("=" * 60)
