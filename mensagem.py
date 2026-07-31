@@ -2,7 +2,7 @@
 # CONFIGURAÇÃO
 # =====================================================
 
-LINK_CANAL = "https://t.me/SEU_CANAL"
+LINK_CANAL = "https://t.me/grupaodapromo"
 
 LOJAS_PIX = (
     "MAGALU",
