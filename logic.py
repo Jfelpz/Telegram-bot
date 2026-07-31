@@ -10,6 +10,7 @@ from sheets import (
 )
 
 from telegram import enviar
+from mensagem import montar_mensagem
 
 
 FUSO = ZoneInfo("America/Fortaleza")
@@ -40,42 +41,6 @@ def dentro_do_horario(config):
     except:
 
         return True
-
-
-# =====================================================
-# MENSAGEM
-# =====================================================
-
-def montar_mensagem(produto, dados):
-
-    nome = produto.get("PRODUTO", "")
-
-    loja = produto.get("LOJA", "")
-
-    preco = float(dados.get("preco", 0))
-
-    preco_antigo = float(dados.get("preco_antigo", 0))
-
-    desconto = round(float(dados.get("desconto", 0)), 2)
-
-    link = produto.get("LINK_AFILIADO", "")
-
-    mensagem = f"""
-🔥 <b>{nome}</b>
-
-🏪 Loja: {loja}
-
-💸 <s>R$ {preco_antigo:.2f}</s>
-
-💰 <b>R$ {preco:.2f}</b>
-
-🏷 <b>{desconto:.2f}% OFF</b>
-
-🛒 Comprar:
-{link}
-"""
-
-    return mensagem.strip()
 
 
 # =====================================================
@@ -129,7 +94,7 @@ def processar(dados_atualizados):
         print("Link    :", produto.get("LINK_AFILIADO"))
 
         # ==========================================
-        # Dados completos do coletor
+        # Dados completos vindos do coletor
         # ==========================================
 
         dados = dados_atualizados.get(linha)
@@ -214,28 +179,32 @@ def processar(dados_atualizados):
             continue
 
         # ==========================================
-        # ENVIO
+        # MONTA MENSAGEM
         # ==========================================
-
-        print()
-
-        print("TODOS OS FILTROS PASSARAM")
-
-        print("ENVIANDO PARA O TELEGRAM...")
 
         mensagem = montar_mensagem(
             produto,
             dados
         )
 
-        resposta = enviar(mensagem)
+        texto = mensagem["texto"]
+
+        imagem = mensagem["imagem"]
+
+        print()
+        print("TODOS OS FILTROS PASSARAM")
+        print("ENVIANDO PARA O TELEGRAM...")
+
+        resposta = enviar(
+            texto,
+            imagem
+        )
 
         print("Status Telegram:", resposta.status_code)
 
         if resposta.status_code != 200:
 
             print("ERRO AO ENVIAR")
-
             print(resposta.text)
 
             atualizar_celula(
@@ -273,21 +242,15 @@ def processar(dados_atualizados):
         )
 
         print()
-
         print("PRODUTO ENVIADO COM SUCESSO")
-
         print(f"Data da postagem........: {agora}")
-
         print(f"Último desconto enviado.: {desconto:.2f}%")
-
         print("Status..................: ENVIADO")
 
         # Apenas um envio por execução
-
         return
 
     print()
-
     print("NENHUM PRODUTO ENCONTRADO PARA POSTAGEM")
 
 
