@@ -1,22 +1,69 @@
 import requests
+
 from config import TELEGRAM_TOKEN, CHAT_ID
 
-def enviar(mensagem):
-    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
 
-    payload = {
-        "chat_id": CHAT_ID,
-        "text": mensagem,
-        "parse_mode": "HTML",
-        "disable_web_page_preview": False
-    }
+# =====================================================
+# ENVIA MENSAGEM PARA O TELEGRAM
+# =====================================================
 
-    response = requests.post(url, data=payload)
+def enviar(texto, imagem=None):
 
-    # Debug opcional (ajuda muito se algo falhar)
+    # =================================================
+    # SE EXISTIR IMAGEM, USA sendPhoto
+    # =================================================
+
+    if imagem:
+
+        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendPhoto"
+
+        payload = {
+
+            "chat_id": CHAT_ID,
+
+            "photo": imagem,
+
+            "caption": texto,
+
+            "parse_mode": "HTML"
+
+        }
+
+    # =================================================
+    # CASO NÃO EXISTA IMAGEM
+    # =================================================
+
+    else:
+
+        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+
+        payload = {
+
+            "chat_id": CHAT_ID,
+
+            "text": texto,
+
+            "parse_mode": "HTML",
+
+            "disable_web_page_preview": False
+
+        }
+
+    # =================================================
+    # ENVIO
+    # =================================================
+
+    response = requests.post(
+        url,
+        data=payload
+    )
+
     print("📨 Telegram status:", response.status_code)
 
     if response.status_code != 200:
-        print("❌ Erro Telegram:", response.text)
+
+        print("❌ Erro Telegram:")
+
+        print(response.text)
 
     return response
