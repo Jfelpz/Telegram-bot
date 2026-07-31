@@ -24,7 +24,10 @@ def main():
     # Atualiza todos os produtos
     # =====================================================
 
-    houve_repostagem = atualizar_produtos()
+    resultado = atualizar_produtos()
+
+    houve_repostagem = resultado["houve_repostagem"]
+    dados_atualizados = resultado["dados_atualizados"]
 
     print()
 
@@ -49,10 +52,10 @@ def main():
 
     # =====================================================
     # ETAPA 2
-    # Procura promoções pendentes e publica
+    # PROCURA PROMOÇÕES PENDENTES E PUBLICA
     # =====================================================
 
-    processar()
+    processar(dados_atualizados)
 
     print()
 
