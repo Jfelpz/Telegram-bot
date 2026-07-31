@@ -19,19 +19,38 @@ def main():
 
     print()
 
-    # ===========================================
+    # =====================================================
     # ETAPA 1
     # Atualiza todos os produtos
-    # ===========================================
+    # =====================================================
 
-    atualizar_produtos()
+    houve_repostagem = atualizar_produtos()
 
     print()
 
-    # ===========================================
+    # =====================================================
+    # SE ALGUM PRODUTO ACABOU DE VIRAR PENDENTE,
+    # NÃO ENVIA NESTA EXECUÇÃO.
+    # =====================================================
+
+    if houve_repostagem:
+
+        print("=" * 60)
+        print("REPOSTAGEM LIBERADA")
+        print("Os produtos serão enviados na próxima execução.")
+        print("=" * 60)
+
+        print()
+        print("=" * 60)
+        print("BOT FINALIZADO")
+        print("=" * 60)
+
+        return
+
+    # =====================================================
     # ETAPA 2
-    # Procura promoções e publica
-    # ===========================================
+    # Procura promoções pendentes e publica
+    # =====================================================
 
     processar()
 
