@@ -43,16 +43,21 @@ def dentro_do_horario(config):
 
 
 # =====================================================
-# MENSAGEM TELEGRAM
+# MENSAGEM
 # =====================================================
 
-def montar_mensagem(produto):
+def montar_mensagem(produto, dados):
 
     nome = produto.get("PRODUTO", "")
-    preco = produto.get("PREÇO", "")
-    preco_antigo = produto.get("PREÇO_ANTIGO", "")
-    desconto = produto.get("DESCONTO", "")
+
     loja = produto.get("LOJA", "")
+
+    preco = float(dados.get("preco", 0))
+
+    preco_antigo = float(dados.get("preco_antigo", 0))
+
+    desconto = round(float(dados.get("desconto", 0)), 2)
+
     link = produto.get("LINK_AFILIADO", "")
 
     mensagem = f"""
@@ -60,11 +65,11 @@ def montar_mensagem(produto):
 
 🏪 Loja: {loja}
 
-💸 <s>R$ {preco_antigo}</s>
+💸 <s>R$ {preco_antigo:.2f}</s>
 
-💰 <b>R$ {preco}</b>
+💰 <b>R$ {preco:.2f}</b>
 
-🏷 {desconto}% OFF
+🏷 <b>{desconto:.2f}% OFF</b>
 
 🛒 Comprar:
 {link}
@@ -77,7 +82,7 @@ def montar_mensagem(produto):
 # PROCESSAMENTO
 # =====================================================
 
-def processar():
+def processar(dados_atualizados):
 
     print("=" * 60)
     print("INICIANDO PUBLICAÇÃO")
@@ -124,6 +129,18 @@ def processar():
         print("Link    :", produto.get("LINK_AFILIADO"))
 
         # ==========================================
+        # Dados completos do coletor
+        # ==========================================
+
+        dados = dados_atualizados.get(linha)
+
+        if dados is None:
+
+            print("IGNORADO -> Produto não foi atualizado nesta execução.")
+
+            continue
+
+        # ==========================================
         # STATUS
         # ==========================================
 
@@ -134,6 +151,7 @@ def processar():
         if status != "PENDENTE":
 
             print(f"IGNORADO -> STATUS = {status}")
+
             continue
 
         # ==========================================
@@ -152,50 +170,26 @@ def processar():
         ):
 
             print("IGNORADO -> PRODUTO INATIVO")
+
             continue
 
         # ==========================================
         # ESTOQUE
         # ==========================================
 
-        estoque = str(
-            produto.get("ESTOQUE", "")
-        ).strip().upper()
-
-        if estoque not in (
-            "TRUE",
-            "SIM",
-            "EM ESTOQUE",
-            "DISPONIVEL",
-            "DISPONÍVEL",
-            "1"
-        ):
+        if not dados.get("estoque"):
 
             print("IGNORADO -> SEM ESTOQUE")
+
             continue
 
         # ==========================================
         # DESCONTO
         # ==========================================
 
-        try:
-
-            desconto = float(
-
-                str(
-
-                    produto.get(
-                        "DESCONTO",
-                        "0"
-                    )
-
-                ).replace("%", "").replace(",", ".")
-
-            )
-
-        except:
-
-            desconto = 0
+        desconto = float(
+            dados.get("desconto", 0)
+        )
 
         if desconto < desconto_minimo:
 
@@ -210,25 +204,29 @@ def processar():
         # ==========================================
 
         link = str(
-            produto.get(
-                "LINK_AFILIADO",
-                ""
-            )
+            produto.get("LINK_AFILIADO", "")
         ).strip()
 
         if not link.startswith("http"):
 
             print("IGNORADO -> LINK INVÁLIDO")
+
             continue
 
         # ==========================================
         # ENVIO
         # ==========================================
 
-        print("\nTODOS OS FILTROS PASSARAM")
+        print()
+
+        print("TODOS OS FILTROS PASSARAM")
+
         print("ENVIANDO PARA O TELEGRAM...")
 
-        mensagem = montar_mensagem(produto)
+        mensagem = montar_mensagem(
+            produto,
+            dados
+        )
 
         resposta = enviar(mensagem)
 
@@ -237,6 +235,7 @@ def processar():
         if resposta.status_code != 200:
 
             print("ERRO AO ENVIAR")
+
             print(resposta.text)
 
             atualizar_celula(
@@ -251,10 +250,6 @@ def processar():
         agora = datetime.now(FUSO).strftime(
             "%d/%m/%Y %H:%M"
         )
-
-        # ==========================================
-        # ATUALIZA A PLANILHA
-        # ==========================================
 
         atualizar_celula(
             banco_sheet,
@@ -277,15 +272,23 @@ def processar():
             round(desconto, 2)
         )
 
-        print("\nPRODUTO ENVIADO COM SUCESSO")
+        print()
+
+        print("PRODUTO ENVIADO COM SUCESSO")
+
         print(f"Data da postagem........: {agora}")
+
         print(f"Último desconto enviado.: {desconto:.2f}%")
+
         print("Status..................: ENVIADO")
 
-        # Envia apenas um produto por execução
+        # Apenas um envio por execução
+
         return
 
-    print("\nNENHUM PRODUTO ENCONTRADO PARA POSTAGEM")
+    print()
+
+    print("NENHUM PRODUTO ENCONTRADO PARA POSTAGEM")
 
 
 # =====================================================
@@ -294,4 +297,4 @@ def processar():
 
 if __name__ == "__main__":
 
-    processar()
+    processar({})
