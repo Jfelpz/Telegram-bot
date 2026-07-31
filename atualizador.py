@@ -36,6 +36,12 @@ def atualizar_produtos():
     atualizados = 0
     erros = 0
 
+    # =====================================================
+    # CONTROLA SE HOUVE ALGUMA REPOSTAGEM LIBERADA
+    # =====================================================
+
+    houve_repostagem = False
+
     for linha, produto in enumerate(produtos, start=2):
 
         url = str(
@@ -116,6 +122,8 @@ def atualizar_produtos():
 
                 novo_status = "PENDENTE"
 
+                houve_repostagem = True
+
                 print(
                     f"↻ Repostagem liberada "
                     f"({ultimo_desconto:.2f}% -> {desconto_novo:.2f}%)"
@@ -125,8 +133,12 @@ def atualizar_produtos():
 
             novo_status = "PAUSADO"
 
+        elif status == "ERRO":
+
+            novo_status = "PENDENTE"
+
         # =====================================================
-        # SEM ESTOQUE
+        # ESTOQUE
         # =====================================================
 
         if not dados.get("estoque"):
@@ -210,6 +222,12 @@ def atualizar_produtos():
     print("=" * 60)
     print(f"Produtos atualizados: {atualizados}")
     print(f"Erros: {erros}")
+
+    # =====================================================
+    # RETORNA SE HOUVE REPOSTAGEM
+    # =====================================================
+
+    return houve_repostagem
 
 
 # =====================================================
