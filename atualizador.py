@@ -170,9 +170,6 @@ def atualizar_produtos():
                 colunas["PRODUTO"]:
                     dados.get("produto", ""),
 
-                colunas["CATEGORIA"]:
-                    dados.get("categoria", ""),
-
                 colunas["PREÇO"]:
                     round(
                         float(
