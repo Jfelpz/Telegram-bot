@@ -47,8 +47,10 @@ def montar_mensagem(produto, dados):
         dados.get("preco_pix", 0)
     )
 
-    desconto = float(
-        dados.get("desconto", 0)
+    desconto = int(
+        round(
+            float(dados.get("desconto", 0))
+        )
     )
 
     imagem = dados.get("imagem", "")
@@ -65,7 +67,7 @@ def montar_mensagem(produto, dados):
 
     # =====================================================
     # PREÇO PIX
-    # Apenas Magalu e apenas se existir desconto PIX
+    # Apenas Magalu e apenas se houver desconto adicional
     # =====================================================
 
     if (
@@ -74,19 +76,20 @@ def montar_mensagem(produto, dados):
         and preco_pix < preco
     ):
 
-        desconto_pix = (
-            (preco - preco_pix)
-            / preco
-        ) * 100
+        desconto_pix = int(
+            round(
+                ((preco - preco_pix) / preco) * 100
+            )
+        )
 
         mensagem += f"""
 ⚡ <b>No PIX:</b> R$ {preco_pix:.2f}
-💳 <b>Economize mais {desconto_pix:.2f}% pagando via PIX</b>
+💳 <b>Economize mais {desconto_pix}% pagando via PIX</b>
 """
 
     mensagem += f"""
 
-📉 <b>{desconto:.2f}% OFF</b>
+📉 <b>{desconto}% OFF</b>
 
 🏷️ <b>Categoria:</b> {categoria}
 
