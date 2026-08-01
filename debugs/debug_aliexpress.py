@@ -1,97 +1,30 @@
-from urllib.parse import urlparse
+from pprint import pprint
 
-from coletores.magalu import MagaluCollector
-from coletores.aliexpress import AliExpressCollector
-
+from coletores.base import coletar_produto
 
 # =====================================================
-# COLETORES
+# URL PARA TESTE
 # =====================================================
 
-MAGALU = MagaluCollector()
+URL = "https://pt.aliexpress.com/item/1005011907112742.html?spm=a2g0o.productlist.main.1.4d686906piDYaX&algo_pvid=8b10730b-ee2d-4bdd-bd7b-4115455ad052&algo_exp_id=8b10730b-ee2d-4bdd-bd7b-4115455ad052-0&pdp_ext_f=%7B%22order%22%3A%221394%22%2C%22eval%22%3A%221%22%2C%22fromPage%22%3A%22search%22%7D&pdp_npi=6%40dis%21BRL%21169.52%2163.46%21%21%21208.72%2178.14%21%402101c28d17855517650263393e0fbe%2112000056968105427%21sea%21BR%213026984385%21ABX%211%210%21n_tag%3A-29910%3Bd%3A95e69951%3Bm03_new_user%3A-29895%3BpisId%3A5000000210895592&curPageLogUid=vHIC4FrFLmAk&utparam-url=scene%3Asearch%7Cquery_from%3A%7Cx_object_id%3A1005011907112742%7C_p_origin_prod%3A"
 
-ALIEXPRESS = AliExpressCollector()
+print("=" * 80)
+print("TESTANDO COLETOR ALIEXPRESS")
+print("=" * 80)
 
+resultado = coletar_produto(URL)
 
-# =====================================================
-# IDENTIFICA A LOJA
-# =====================================================
+print()
+print("=" * 80)
+print("RESULTADO")
+print("=" * 80)
 
-def identificar_loja(url):
+pprint(resultado)
 
-    dominio = urlparse(url).netloc.lower()
+print()
+print("=" * 80)
+print("CHAVES")
+print("=" * 80)
 
-    if (
-        "magazineluiza" in dominio
-        or "magazinevoce" in dominio
-        or "magazinevoce.com.br" in dominio
-    ):
-
-        return "MAGALU"
-
-    if "aliexpress.com" in dominio:
-
-        return "ALIEXPRESS"
-
-    if "amazon.com.br" in dominio:
-
-        return "AMAZON"
-
-    if "kabum.com.br" in dominio:
-
-        return "KABUM"
-
-    if "pichau.com.br" in dominio:
-
-        return "PICHAU"
-
-    if "terabyteshop.com.br" in dominio:
-
-        return "TERABYTE"
-
-    return None
-
-
-# =====================================================
-# COLETOR PRINCIPAL
-# =====================================================
-
-def coletar_produto(url):
-
-    loja = identificar_loja(url)
-
-    if loja == "MAGALU":
-
-        return MAGALU.coletar(url)
-
-    elif loja == "ALIEXPRESS":
-
-        return ALIEXPRESS.coletar(url)
-
-    elif loja == "AMAZON":
-
-        raise NotImplementedError(
-            "Coletor da Amazon ainda não implementado."
-        )
-
-    elif loja == "KABUM":
-
-        raise NotImplementedError(
-            "Coletor da KaBuM ainda não implementado."
-        )
-
-    elif loja == "PICHAU":
-
-        raise NotImplementedError(
-            "Coletor da Pichau ainda não implementado."
-        )
-
-    elif loja == "TERABYTE":
-
-        raise NotImplementedError(
-            "Coletor da Terabyte ainda não implementado."
-        )
-
-    raise ValueError(
-        f"Loja não suportada: {url}"
-    )
+for chave in resultado.keys():
+    print(chave)
