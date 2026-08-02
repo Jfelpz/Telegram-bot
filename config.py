@@ -12,7 +12,7 @@ GOOGLE_CREDENTIALS = os.getenv("GOOGLE_CREDENTIALS")
 
 
 # ==================================================
-# 🛒 MERCADO LIVRE
+# ⚙️ MERCADO LIVRE
 # ==================================================
 
 ML_CLIENT_ID = os.getenv("ML_CLIENT_ID")
@@ -85,6 +85,7 @@ PESO_DESCONTO = float(
 
 PESO_RECENCIA = float(
     os.getenv("PESO_RECENCIA", 0.3)
+)
 
 
 # ==================================================
