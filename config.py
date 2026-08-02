@@ -12,15 +12,23 @@ GOOGLE_CREDENTIALS = os.getenv("GOOGLE_CREDENTIALS")
 
 
 # ==================================================
+# 🛒 MERCADO LIVRE
+# ==================================================
+
+ML_CLIENT_ID = os.getenv("ML_CLIENT_ID")
+ML_CLIENT_SECRET = os.getenv("ML_CLIENT_SECRET")
+
+ML_ACCESS_TOKEN = os.getenv("ML_ACCESS_TOKEN")
+ML_REFRESH_TOKEN = os.getenv("ML_REFRESH_TOKEN")
+
+
+# ==================================================
 # 🌐 SCRAPER API
 # ==================================================
 
 SCRAPER_API_KEY = os.getenv("SCRAPER_API_KEY")
 
-# Tempo máximo de espera por requisição (segundos)
 SCRAPER_TIMEOUT = int(os.getenv("SCRAPER_TIMEOUT", 60))
-
-# Quantidade de tentativas em caso de erro
 SCRAPER_RETRIES = int(os.getenv("SCRAPER_RETRIES", 3))
 
 
@@ -41,13 +49,10 @@ DESCONTO_MINIMO = float(
 # 🧠 COLETOR
 # ==================================================
 
-# Quantidade máxima de produtos consultados
-# por execução do bot.
 MAX_COLETAS = int(
     os.getenv("MAX_COLETAS", 8)
 )
 
-# Intervalo padrão entre verificações
 COLETA_MIN_MINUTOS = int(
     os.getenv("COLETA_MIN_MINUTOS", 60)
 )
@@ -80,7 +85,6 @@ PESO_DESCONTO = float(
 
 PESO_RECENCIA = float(
     os.getenv("PESO_RECENCIA", 0.3)
-)
 
 
 # ==================================================
