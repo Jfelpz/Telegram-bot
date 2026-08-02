@@ -36,4 +36,4 @@ jobs:
           SCRAPER_API_KEY: ${{ secrets.SCRAPER_API_KEY }}
 
         run: |
-          python debugs/debug_aliexpress.py
+          python debugs/autenticar_ml.py
