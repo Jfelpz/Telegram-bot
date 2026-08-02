@@ -5,6 +5,7 @@ Parte 1 - PKCE + URL de autorização
 =========================================================
 """
 
+import sys
 import json
 import base64
 import hashlib
@@ -13,6 +14,19 @@ import webbrowser
 
 from pathlib import Path
 from urllib.parse import urlencode
+
+# =========================================================
+# AJUSTA O PATH PARA FUNCIONAR NO GITHUB ACTIONS
+# =========================================================
+
+ROOT = Path(__file__).resolve().parents[1]
+
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+# =========================================================
+# IMPORTA CONFIGURAÇÕES
+# =========================================================
 
 from config import ML_CLIENT_ID
 
@@ -25,7 +39,7 @@ REDIRECT_URI = "https://telegram-bot-jfelps.onrender.com/callback"
 
 AUTH_URL = "https://auth.mercadolivre.com.br/authorization"
 
-ARQUIVO_PKCE = Path("debugs/pkce.json")
+ARQUIVO_PKCE = ROOT / "debugs" / "pkce.json"
 
 
 # =========================================================
@@ -70,11 +84,8 @@ def gerar_state():
 def salvar_pkce(code_verifier, state):
 
     dados = {
-
         "code_verifier": code_verifier,
-
         "state": state
-
     }
 
     ARQUIVO_PKCE.parent.mkdir(
@@ -83,25 +94,16 @@ def salvar_pkce(code_verifier, state):
     )
 
     with open(
-
         ARQUIVO_PKCE,
-
         "w",
-
         encoding="utf-8"
-
     ) as arquivo:
 
         json.dump(
-
             dados,
-
             arquivo,
-
             indent=4,
-
             ensure_ascii=False
-
         )
 
 
@@ -112,17 +114,12 @@ def salvar_pkce(code_verifier, state):
 def carregar_pkce():
 
     if not ARQUIVO_PKCE.exists():
-
         return None
 
     with open(
-
         ARQUIVO_PKCE,
-
         "r",
-
         encoding="utf-8"
-
     ) as arquivo:
 
         return json.load(arquivo)
@@ -182,7 +179,6 @@ if __name__ == "__main__":
     try:
 
         webbrowser.open(url)
-
         print("Navegador aberto.")
 
     except Exception:
