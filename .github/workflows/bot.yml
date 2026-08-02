@@ -35,5 +35,9 @@ jobs:
           GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
           SCRAPER_API_KEY: ${{ secrets.SCRAPER_API_KEY }}
 
+          # Mercado Livre
+          ML_CLIENT_ID: ${{ secrets.ML_CLIENT_ID }}
+          ML_CLIENT_SECRET: ${{ secrets.ML_CLIENT_SECRET }}
+
         run: |
           python debugs/autenticar_ml.py
