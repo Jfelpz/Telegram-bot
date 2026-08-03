@@ -5,7 +5,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return "Servidor OAuth Mercado Livre ativo"
+    return "OAuth Mercado Livre online"
 
 
 @app.route("/callback")
@@ -14,20 +14,22 @@ def callback():
     code = request.args.get("code")
     state = request.args.get("state")
 
-    print("=" * 50)
+    print("=" * 60)
     print("CALLBACK MERCADO LIVRE")
     print("CODE:", code)
     print("STATE:", state)
-    print("=" * 50)
+    print("=" * 60)
 
-    if code:
-        return f"""
-        <h2>Autorização recebida!</h2>
-        <p>CODE:</p>
-        <textarea>{code}</textarea>
-        """
+    if not code:
+        return "Nenhum código recebido"
 
-    return "Nenhum código recebido"
+    return f"""
+    <h2>Autorização Mercado Livre concluída</h2>
+
+    <p>Copie este CODE:</p>
+
+    <textarea rows="5" cols="80">{code}</textarea>
+    """
 
 
 if __name__ == "__main__":
