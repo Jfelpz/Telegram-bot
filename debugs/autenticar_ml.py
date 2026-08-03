@@ -143,8 +143,10 @@ def gerar_url():
     "response_type": "code",
     "client_id": ML_CLIENT_ID,
     "redirect_uri": REDIRECT_URI,
-    "state": state
-}   
+    "state": state,
+    "code_challenge": challenge,
+    "code_challenge_method": "S256"
+}
 
     return f"{AUTH_URL}?{urlencode(parametros)}"
 
