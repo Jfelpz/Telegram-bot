@@ -187,3 +187,130 @@ if __name__ == "__main__":
 
     print()
     print("Após autorizar o aplicativo, copie o parâmetro CODE.")
+
+# =========================================================
+# PARTE 2
+# TROCAR CODE POR ACCESS TOKEN
+# =========================================================
+
+import requests
+
+from config import ML_CLIENT_SECRET
+
+
+TOKEN_URL = "https://api.mercadolibre.com/oauth/token"
+
+ARQUIVO_TOKEN = Path("debugs/tokens_ml.json")
+
+
+# =========================================================
+# SALVAR TOKENS
+# =========================================================
+
+def salvar_tokens(tokens):
+
+    ARQUIVO_TOKEN.parent.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    with open(
+        ARQUIVO_TOKEN,
+        "w",
+        encoding="utf-8"
+    ) as arquivo:
+
+        json.dump(
+            tokens,
+            arquivo,
+            indent=4,
+            ensure_ascii=False
+        )
+
+
+# =========================================================
+# TROCAR CODE PELO TOKEN
+# =========================================================
+
+def trocar_code_por_token(code):
+
+    pkce = carregar_pkce()
+
+    if pkce is None:
+
+        print("PKCE não encontrado.")
+        return
+
+
+    payload = {
+
+        "grant_type": "authorization_code",
+
+        "client_id": ML_CLIENT_ID,
+
+        "client_secret": ML_CLIENT_SECRET,
+
+        "code": code,
+
+        "redirect_uri": REDIRECT_URI,
+
+        "code_verifier": pkce["code_verifier"]
+
+    }
+
+
+    print()
+    print("Enviando solicitação...")
+
+    resposta = requests.post(
+
+        TOKEN_URL,
+
+        data=payload,
+
+        headers={
+            "accept": "application/json",
+            "content-type": "application/x-www-form-urlencoded"
+        }
+
+    )
+
+
+    print()
+    print("Status:", resposta.status_code)
+    print(resposta.text)
+
+
+    if resposta.status_code != 200:
+
+        return
+
+
+    dados = resposta.json()
+
+    salvar_tokens(dados)
+
+    print()
+    print("=" * 70)
+    print("TOKEN GERADO COM SUCESSO")
+    print("=" * 70)
+
+    print("Access Token:")
+    print(dados["access_token"])
+
+    print()
+    print("Refresh Token:")
+    print(dados["refresh_token"])
+
+
+# =========================================================
+# EXECUTAR TROCA
+# =========================================================
+
+print()
+
+codigo = input(
+    "Cole aqui o parâmetro CODE recebido na URL:\n\n"
+).strip()
+
+trocar_code_por_token(codigo)
