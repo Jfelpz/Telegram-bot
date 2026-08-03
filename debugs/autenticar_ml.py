@@ -35,7 +35,7 @@ from config import ML_CLIENT_ID
 # CONFIGURAÇÕES
 # =========================================================
 
-REDIRECT_URI = "https://telegram-bot-jfelps.onrender.com/callback"
+REDIRECT_URI = "https://telegram-bot-ml-oauth.onrender.com/callback"
 
 AUTH_URL = "https://auth.mercadolivre.com.br/authorization"
 
