@@ -124,49 +124,72 @@ class MercadoLivre:
 
     def renovar_token(self):
 
-        print("Renovando Access Token...")
+    print("\n======================================")
+    print("RENOVANDO ACCESS TOKEN...")
+    print("======================================")
 
-        payload = {
+    payload = {
 
-            "grant_type": "refresh_token",
+        "grant_type": "refresh_token",
 
-            "client_id": ML_CLIENT_ID,
+        "client_id": ML_CLIENT_ID,
 
-            "client_secret": ML_CLIENT_SECRET,
+        "client_secret": ML_CLIENT_SECRET,
 
-            "refresh_token": self.refresh_token
+        "refresh_token": self.refresh_token
 
-        }
+    }
 
-        resposta = requests.post(
+    resposta = requests.post(
 
-            TOKEN_URL,
+        TOKEN_URL,
 
-            data=payload,
+        data=payload,
 
-            timeout=30
+        timeout=30
 
-        )
+    )
 
-        resposta.raise_for_status()
+    print("\n======================================")
+    print("RESPOSTA DA API")
+    print("======================================")
+    print("Status:", resposta.status_code)
+    print(resposta.text)
+    print("======================================\n")
 
-        novos_tokens = resposta.json()
+    resposta.raise_for_status()
 
-        self.tokens["access_token"] = novos_tokens["access_token"]
-        self.tokens["refresh_token"] = novos_tokens["refresh_token"]
-        self.tokens["expires_in"] = novos_tokens["expires_in"]
-        self.tokens["token_type"] = novos_tokens.get(
-            "token_type",
-            "Bearer"
-        )
-        self.tokens["created_at"] = datetime.now().isoformat()
+    novos_tokens = resposta.json()
 
-        if "user_id" in novos_tokens:
-            self.tokens["user_id"] = novos_tokens["user_id"]
+    self.tokens["access_token"] = novos_tokens["access_token"]
 
-        self.salvar_tokens()
+    self.tokens["refresh_token"] = novos_tokens["refresh_token"]
 
-        print("✓ Novo token salvo.")
+    self.tokens["expires_in"] = novos_tokens.get(
+        "expires_in",
+        21600
+    )
+
+    self.tokens["token_type"] = novos_tokens.get(
+        "token_type",
+        "Bearer"
+    )
+
+    self.tokens["created_at"] = datetime.now().isoformat()
+
+    if "user_id" in novos_tokens:
+
+        self.tokens["user_id"] = novos_tokens["user_id"]
+
+    self.salvar_tokens()
+
+    print("======================================")
+    print("NOVOS TOKENS SALVOS")
+    print("======================================")
+    print("Access Token:", self.tokens["access_token"])
+    print("Refresh Token:", self.tokens["refresh_token"])
+    print("Created At:", self.tokens["created_at"])
+    print("======================================")
 
     # =====================================================
     # GARANTIR TOKEN
