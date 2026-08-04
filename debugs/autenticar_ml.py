@@ -137,16 +137,21 @@ def gerar_url():
 
     state = gerar_state()
 
+    print(f"ROOT: {ROOT}")
+    print(f"PKCE será salvo em: {ARQUIVO_PKCE}")
+
     salvar_pkce(verifier, state)
 
+    print("✅ PKCE salvo com sucesso!")
+
     parametros = {
-    "response_type": "code",
-    "client_id": ML_CLIENT_ID,
-    "redirect_uri": REDIRECT_URI,
-    "state": state,
-    "code_challenge": challenge,
-    "code_challenge_method": "S256"
-}
+        "response_type": "code",
+        "client_id": ML_CLIENT_ID,
+        "redirect_uri": REDIRECT_URI,
+        "state": state,
+        "code_challenge": challenge,
+        "code_challenge_method": "S256"
+    }
 
     return f"{AUTH_URL}?{urlencode(parametros)}"
 
