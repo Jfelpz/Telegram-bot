@@ -1,5 +1,8 @@
 {
     "access_token": "APP_USR-3055663592267864-080322-238265b6aa638b0b325304c974bfd4d4-1127744049",
     "refresh_token": "TG-6a714c6676991e00019901a5-1127744049",
-    "user_id": 1127744049
+    "user_id": 1127744049,
+    "token_type": "Bearer",
+    "expires_in": 21600,
+    "created_at": "2026-08-03T23:40:00"
 }
