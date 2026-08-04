@@ -16,7 +16,7 @@ GOOGLE_CREDENTIALS = os.getenv("GOOGLE_CREDENTIALS")
 # ==================================================
 
 ML_CLIENT_ID = "3055663592267864"
-)
+
 
 ML_CLIENT_SECRET = "y9CoTMn9A0dVSVVNcORAuLvCyYCWd6wE"
 
