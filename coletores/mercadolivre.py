@@ -5,6 +5,7 @@ CLIENTE OFICIAL MERCADO LIVRE
 """
 
 import json
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import requests
@@ -66,7 +67,7 @@ class MercadoLivre:
             )
 
     # =====================================================
-    # ACCESS TOKEN
+    # PROPRIEDADES
     # =====================================================
 
     @property
@@ -79,11 +80,51 @@ class MercadoLivre:
 
         return self.tokens["refresh_token"]
 
+    @property
+    def expires_in(self):
+
+        return int(
+            self.tokens.get("expires_in", 21600)
+        )
+
+    @property
+    def created_at(self):
+
+        valor = self.tokens.get("created_at")
+
+        if not valor:
+
+            return datetime.now()
+
+        return datetime.fromisoformat(valor)
+
+    # =====================================================
+    # TEMPO RESTANTE
+    # =====================================================
+
+    def tempo_restante(self):
+
+        expiracao = self.created_at + timedelta(
+            seconds=self.expires_in
+        )
+
+        return expiracao - datetime.now()
+
+    # =====================================================
+    # TOKEN EXPIRADO?
+    # =====================================================
+
+    def token_expirado(self):
+
+        return self.tempo_restante() <= timedelta(minutes=5)
+
     # =====================================================
     # RENOVAR TOKEN
     # =====================================================
 
     def renovar_token(self):
+
+        print("Renovando Access Token...")
 
         payload = {
 
@@ -109,11 +150,33 @@ class MercadoLivre:
 
         resposta.raise_for_status()
 
-        self.tokens = resposta.json()
+        novos_tokens = resposta.json()
+
+        self.tokens["access_token"] = novos_tokens["access_token"]
+        self.tokens["refresh_token"] = novos_tokens["refresh_token"]
+        self.tokens["expires_in"] = novos_tokens["expires_in"]
+        self.tokens["token_type"] = novos_tokens.get(
+            "token_type",
+            "Bearer"
+        )
+        self.tokens["created_at"] = datetime.now().isoformat()
+
+        if "user_id" in novos_tokens:
+            self.tokens["user_id"] = novos_tokens["user_id"]
 
         self.salvar_tokens()
 
-        print("✓ Token renovado com sucesso.")
+        print("✓ Novo token salvo.")
+
+    # =====================================================
+    # GARANTIR TOKEN
+    # =====================================================
+
+    def garantir_token(self):
+
+        if self.token_expirado():
+
+            self.renovar_token()
 
     # =====================================================
     # HEADERS
@@ -121,15 +184,17 @@ class MercadoLivre:
 
     def headers(self):
 
+        self.garantir_token()
+
         return {
 
             "Authorization":
                 f"Bearer {self.access_token}",
 
-            "Content-Type":
+            "Accept":
                 "application/json",
 
-            "Accept":
+            "Content-Type":
                 "application/json"
 
         }
@@ -143,15 +208,10 @@ class MercadoLivre:
         url = API_URL + endpoint
 
         resposta = requests.get(
-
             url,
-
             headers=self.headers(),
-
             timeout=30,
-
             **kwargs
-
         )
 
         if resposta.status_code == 401:
@@ -159,15 +219,10 @@ class MercadoLivre:
             self.renovar_token()
 
             resposta = requests.get(
-
                 url,
-
                 headers=self.headers(),
-
                 timeout=30,
-
                 **kwargs
-
             )
 
         resposta.raise_for_status()
@@ -183,15 +238,10 @@ class MercadoLivre:
         url = API_URL + endpoint
 
         resposta = requests.post(
-
             url,
-
             headers=self.headers(),
-
             json=json,
-
             timeout=30
-
         )
 
         if resposta.status_code == 401:
@@ -199,15 +249,10 @@ class MercadoLivre:
             self.renovar_token()
 
             resposta = requests.post(
-
                 url,
-
                 headers=self.headers(),
-
                 json=json,
-
                 timeout=30
-
             )
 
         resposta.raise_for_status()
@@ -223,15 +268,10 @@ class MercadoLivre:
         url = API_URL + endpoint
 
         resposta = requests.put(
-
             url,
-
             headers=self.headers(),
-
             json=json,
-
             timeout=30
-
         )
 
         if resposta.status_code == 401:
@@ -239,15 +279,10 @@ class MercadoLivre:
             self.renovar_token()
 
             resposta = requests.put(
-
                 url,
-
                 headers=self.headers(),
-
                 json=json,
-
                 timeout=30
-
             )
 
         resposta.raise_for_status()
