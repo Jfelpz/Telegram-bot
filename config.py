@@ -15,8 +15,15 @@ GOOGLE_CREDENTIALS = os.getenv("GOOGLE_CREDENTIALS")
 # ⚙️ MERCADO LIVRE
 # ==================================================
 
-ML_CLIENT_ID = "3055663592267864"
-ML_CLIENT_SECRET = "y9CoTMn9A0dVSVVNcORAuLvCyYCWd6wE"
+ML_CLIENT_ID = os.getenv(
+    "ML_CLIENT_ID",
+    "3055663592267864"
+)
+
+ML_CLIENT_SECRET = os.getenv(
+    "ML_CLIENT_SECRET",
+    "y9CoTMn9A0dVSVVNcORAuLvCyYCWd6wE"
+)
 
 ML_ACCESS_TOKEN = os.getenv("ML_ACCESS_TOKEN")
 ML_REFRESH_TOKEN = os.getenv("ML_REFRESH_TOKEN")
@@ -28,8 +35,13 @@ ML_REFRESH_TOKEN = os.getenv("ML_REFRESH_TOKEN")
 
 SCRAPER_API_KEY = os.getenv("SCRAPER_API_KEY")
 
-SCRAPER_TIMEOUT = int(os.getenv("SCRAPER_TIMEOUT", 60))
-SCRAPER_RETRIES = int(os.getenv("SCRAPER_RETRIES", 3))
+SCRAPER_TIMEOUT = int(
+    os.getenv("SCRAPER_TIMEOUT", 60)
+)
+
+SCRAPER_RETRIES = int(
+    os.getenv("SCRAPER_RETRIES", 3)
+)
 
 
 # ==================================================
@@ -97,6 +109,4 @@ AMBIENTE = os.getenv(
     "dev"
 )
 
-DEBUG = (
-    AMBIENTE.lower() != "prod"
-)
+DEBUG = AMBIENTE.lower() != "prod"
