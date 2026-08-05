@@ -40,4 +40,4 @@ jobs:
           ML_CLIENT_SECRET: ${{ secrets.ML_CLIENT_SECRET }}
 
         run: |
-          python debugs/teste_ml.py
+          python debugs/listar_anuncios.py
