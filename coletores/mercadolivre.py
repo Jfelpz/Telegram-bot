@@ -319,3 +319,15 @@ class MercadoLivre:
     def meus_dados(self):
 
         return self.get("/users/me")
+
+    # =====================================================
+    # LISTAR ANÚNCIOS
+    # =====================================================
+
+    def listar_anuncios(self):
+
+        endpoint = f"/users/{self.tokens['user_id']}/items/search"
+
+        dados = self.get(endpoint)
+
+        return dados.get("results", [])
