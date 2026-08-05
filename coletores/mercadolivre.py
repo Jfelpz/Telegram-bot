@@ -341,30 +341,30 @@ class MercadoLivre:
 
     def delete(self, endpoint):
 
-    url = API_URL + endpoint
-
-    resposta = requests.delete(
-        url,
-        headers=self.headers(),
-        timeout=30
-    )
-
-    if resposta.status_code == 401:
-
-        self.renovar_token()
-
+        url = API_URL + endpoint
+    
         resposta = requests.delete(
             url,
             headers=self.headers(),
             timeout=30
         )
-
-    resposta.raise_for_status()
-
-    if resposta.text:
-        return resposta.json()
-
-    return {}
+    
+        if resposta.status_code == 401:
+    
+            self.renovar_token()
+    
+            resposta = requests.delete(
+                url,
+                headers=self.headers(),
+                timeout=30
+            )
+    
+        resposta.raise_for_status()
+    
+        if resposta.text:
+            return resposta.json()
+    
+        return {}
 
     # =====================================================
     # TESTE
