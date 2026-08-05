@@ -15,17 +15,40 @@ from config import (
     ML_CLIENT_SECRET,
 )
 
-TOKEN_URL = "https://api.mercadolibre.com/oauth/token"
-API_URL = "https://api.mercadolibre.com"
+# =====================================================
+# CAMINHOS
+# =====================================================
 
-TOKEN_FILE = Path("ml_tokens.json")
+ROOT = Path(__file__).resolve().parent.parent
+
+DATA_DIR = ROOT / "data"
+
+DATA_DIR.mkdir(
+    parents=True,
+    exist_ok=True
+)
+
+TOKEN_FILE = DATA_DIR / "ml_tokens.json"
+
+# =====================================================
+# API
+# =====================================================
+
+TOKEN_URL = "https://api.mercadolibre.com/oauth/token"
+
+API_URL = "https://api.mercadolibre.com"
 
 
 class MercadoLivre:
 
     def __init__(self):
 
-        self.tokens = self.carregar_tokens()
+        if not TOKEN_FILE.exists():
+            raise FileNotFoundError(
+                f"Arquivo não encontrado:\n{TOKEN_FILE}"
+            )
+
+    self.tokens = self.carregar_tokens()
 
     # =====================================================
     # CARREGAR TOKENS
@@ -36,7 +59,7 @@ class MercadoLivre:
         if not TOKEN_FILE.exists():
 
             raise FileNotFoundError(
-                "Arquivo ml_tokens.json não encontrado."
+                f"Arquivo de tokens não encontrado:\n{TOKEN_FILE}"
             )
 
         with open(
@@ -118,7 +141,7 @@ class MercadoLivre:
 
         return self.tempo_restante() <= timedelta(minutes=5)
 
-        # =====================================================
+    # =====================================================
     # RENOVAR TOKEN
     # =====================================================
 
@@ -312,6 +335,37 @@ class MercadoLivre:
 
         return resposta.json()
 
+    #=====================================
+    #DELETE
+    #======================================
+
+    def delete(self, endpoint):
+
+    url = API_URL + endpoint
+
+    resposta = requests.delete(
+        url,
+        headers=self.headers(),
+        timeout=30
+    )
+
+    if resposta.status_code == 401:
+
+        self.renovar_token()
+
+        resposta = requests.delete(
+            url,
+            headers=self.headers(),
+            timeout=30
+        )
+
+    resposta.raise_for_status()
+
+    if resposta.text:
+        return resposta.json()
+
+    return {}
+
     # =====================================================
     # TESTE
     # =====================================================
@@ -324,10 +378,51 @@ class MercadoLivre:
     # LISTAR ANÚNCIOS
     # =====================================================
 
-    def listar_anuncios(self):
+    def listar_anuncios(self, item_id):
+
+        return self.get(f"/items/{item_id}")
 
         endpoint = f"/users/{self.tokens['user_id']}/items/search"
 
         dados = self.get(endpoint)
 
         return dados.get("results", [])
+
+    #=======================================================
+    # BUSCAR DESCRIÇÃO
+    #=======================================================
+
+    def buscar_descricao(self, item_id):
+
+        return self.get(f"/items/{item_id}/description")
+
+    #=======================================================
+    # BUSCAR PREÇO
+    #=======================================================
+
+    def buscar_preco(self, item_id):
+
+        anuncio = self.obter_anuncio(item_id)
+    
+        return anuncio.get("price")
+
+    #=======================================================
+    # BUSCAR LINK
+    #=======================================================
+
+    def buscar_link(self, item_id):
+
+        anuncio = self.obter_anuncio(item_id)
+    
+        return anuncio.get("permalink")
+
+    #=======================================================
+    # BUSCAR ESTOQUE
+    #=======================================================
+    
+    def buscar_estoque(self, item_id):
+
+        anuncio = self.obter_anuncio(item_id)
+    
+        return anuncio.get("available_quantity")
+    
