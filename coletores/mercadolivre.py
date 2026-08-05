@@ -377,16 +377,22 @@ class MercadoLivre:
     # =====================================================
     # LISTAR ANÚNCIOS
     # =====================================================
-
-    def listar_anuncios(self, item_id):
-
-        return self.get(f"/items/{item_id}")
-
+    
+    def listar_anuncios(self):
+    
         endpoint = f"/users/{self.tokens['user_id']}/items/search"
-
+    
         dados = self.get(endpoint)
-
+    
         return dados.get("results", [])
+
+    # =====================================================
+    # OBTER ANÚNCIO
+    # =====================================================
+    
+    def obter_anuncio(self, item_id):
+    
+        return self.get(f"/items/{item_id}")
 
     #=======================================================
     # BUSCAR DESCRIÇÃO
@@ -401,9 +407,7 @@ class MercadoLivre:
     #=======================================================
 
     def buscar_preco(self, item_id):
-
         anuncio = self.obter_anuncio(item_id)
-    
         return anuncio.get("price")
 
     #=======================================================
@@ -411,9 +415,7 @@ class MercadoLivre:
     #=======================================================
 
     def buscar_link(self, item_id):
-
         anuncio = self.obter_anuncio(item_id)
-    
         return anuncio.get("permalink")
 
     #=======================================================
@@ -421,8 +423,6 @@ class MercadoLivre:
     #=======================================================
     
     def buscar_estoque(self, item_id):
-
         anuncio = self.obter_anuncio(item_id)
-    
         return anuncio.get("available_quantity")
     
