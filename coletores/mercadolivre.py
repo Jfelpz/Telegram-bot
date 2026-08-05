@@ -48,7 +48,7 @@ class MercadoLivre:
                 f"Arquivo não encontrado:\n{TOKEN_FILE}"
             )
 
-    self.tokens = self.carregar_tokens()
+        self.tokens = self.carregar_tokens()
 
     # =====================================================
     # CARREGAR TOKENS
