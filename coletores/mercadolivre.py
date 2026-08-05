@@ -383,6 +383,10 @@ class MercadoLivre:
         endpoint = f"/users/{self.tokens['user_id']}/items/search"
     
         dados = self.get(endpoint)
+
+        print("\n===== RESPOSTA COMPLETA =====")
+        print(dados)
+        print("=============================\n")
     
         return dados.get("results", [])
 
