@@ -391,6 +391,114 @@ class MercadoLivre:
         return dados.get("results", [])
 
     # =====================================================
+    # EXTRAI O ID DO ANÚNCIO A PARTIR DA URL
+    # =====================================================
+
+    def extrair_item_id(self, url):
+
+        import re
+
+        padroes = [
+
+            r"(MLB\d+)",
+
+            r"item_id=(MLB\d+)",
+
+            r"/(MLB\d+)",
+
+        ]
+
+        for padrao in padroes:
+
+            resultado = re.search(padrao, url.upper())
+
+            if resultado:
+
+                return resultado.group(1)
+
+        raise ValueError(
+            f"Não foi possível identificar o Item ID da URL:\n{url}"
+        )
+
+    # =====================================================
+    # COLETOR PADRÃO
+    # =====================================================
+
+    def obter_produto(self, url):
+
+        item_id = self.extrair_item_id(url)
+
+        anuncio = self.obter_anuncio(item_id)
+
+        preco = float(
+            anuncio.get("price", 0)
+        )
+
+        preco_antigo = float(
+            anuncio.get(
+                "original_price",
+                preco
+            ) or preco
+        )
+
+        if preco_antigo > preco:
+
+            desconto = round(
+                (preco_antigo - preco)
+                / preco_antigo
+                * 100,
+                2
+            )
+
+        else:
+
+            desconto = 0.0
+
+        estoque = (
+            anuncio.get(
+                "available_quantity",
+                0
+            ) > 0
+        )
+
+        imagem = ""
+
+        if anuncio.get("pictures"):
+
+            imagem = anuncio["pictures"][0].get(
+                "secure_url",
+                anuncio["pictures"][0].get("url", "")
+            )
+
+        return {
+
+            "erro": False,
+
+            "loja": "Mercado Livre",
+
+            "produto": anuncio.get("title", ""),
+
+            "preco": preco,
+
+            "preco_antigo": preco_antigo,
+
+            "preco_pix": preco,
+
+            "desconto": desconto,
+
+            "estoque": estoque,
+
+            "url": anuncio.get("permalink", url),
+
+            "imagem": imagem,
+
+            "identificador": item_id,
+
+            "mensagem": ""
+
+        }
+
+    # =====================================================
     # OBTER ANÚNCIO
     # =====================================================
     
