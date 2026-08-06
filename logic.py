@@ -167,16 +167,19 @@ def processar(dados_atualizados):
         # ==========================================
         # LINK
         # ==========================================
-
+        
         link = str(
             produto.get("LINK_AFILIADO", "")
         ).strip()
-
+        
         if not link.startswith("http"):
-
+        
             print("IGNORADO -> LINK INVÁLIDO")
-
+        
             continue
+        
+        # Sempre utiliza o link de afiliado
+        dados["url"] = link
 
         # ==========================================
         # MONTA MENSAGEM
