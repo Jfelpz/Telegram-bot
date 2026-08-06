@@ -47,13 +47,13 @@ def coletar_produto(url):
     if loja == "amazon":
         return coletar_amazon(url)
 
-    if loja == "magalu":
+    elif loja == "magalu":
         return coletar_magalu(url)
 
-    if loja == "aliexpress":
+    elif loja == "aliexpress":
         return coletar_aliexpress(url)
 
-    if loja == "mercadolivre":
+    elif loja == "mercadolivre":
 
         ml = MercadoLivre()
 
