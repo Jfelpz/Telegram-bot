@@ -1,63 +1,65 @@
+"""
+=========================================================
+COLETOR BASE
+Responsável por identificar a loja e chamar o coletor correto.
+=========================================================
+"""
+
 from urllib.parse import urlparse
 
-from coletores.magalu import MagaluCollector
-from coletores.aliexpress import AliExpressCollector
+from coletores.amazon import coletar_amazon
+from coletores.magalu import coletar_magalu
+from coletores.aliexpress import coletar_aliexpress
+from coletores.mercadolivre import MercadoLivre
 
 
-class ColetorBase:
+# =====================================================
+# IDENTIFICA A LOJA
+# =====================================================
 
-    def __init__(self):
+def identificar_loja(url):
 
-        self.coletores = {
+    dominio = urlparse(url).netloc.lower()
 
-            # Magazine Luiza
-            "magazinevoce.com.br": MagaluCollector(),
-            "magazineluiza.com.br": MagaluCollector(),
+    if "amazon" in dominio:
+        return "amazon"
 
-            # AliExpress
-            "aliexpress.com": AliExpressCollector(),
-            "pt.aliexpress.com": AliExpressCollector(),
-            "best.aliexpress.com": AliExpressCollector(),
-            "m.aliexpress.com": AliExpressCollector(),
-        }
+    if "magazineluiza" in dominio or "magalu" in dominio:
+        return "magalu"
 
-    # =====================================================
-    # IDENTIFICA A LOJA
-    # =====================================================
+    if "aliexpress" in dominio:
+        return "aliexpress"
 
-    def identificar_loja(self, url: str):
+    if "mercadolivre" in dominio or "mercadolibre" in dominio:
+        return "mercadolivre"
 
-        dominio = urlparse(url).netloc.lower()
-
-        dominio = dominio.replace("www.", "")
-
-        # Aceita qualquer subdomínio do AliExpress
-        if "aliexpress.com" in dominio:
-
-            return AliExpressCollector()
-
-        for site, coletor in self.coletores.items():
-
-            if site in dominio:
-
-                return coletor
-
-        raise Exception(f"Loja não suportada: {dominio}")
-
-    # =====================================================
-    # COLETA
-    # =====================================================
-
-    def coletar(self, url: str):
-
-        coletor = self.identificar_loja(url)
-
-        return coletor.coletar(url)
+    return None
 
 
-coletor = ColetorBase()
-
+# =====================================================
+# COLETOR PRINCIPAL
+# =====================================================
 
 def coletar_produto(url):
 
-    return coletor.coletar(url)
+    loja = identificar_loja(url)
+
+    if loja == "amazon":
+        return coletar_amazon(url)
+
+    if loja == "magalu":
+        return coletar_magalu(url)
+
+    if loja == "aliexpress":
+        return coletar_aliexpress(url)
+
+    if loja == "mercadolivre":
+
+        ml = MercadoLivre()
+
+        return ml.obter_produto(url)
+
+    return {
+        "erro": True,
+        "mensagem": "Loja não suportada."
+    }
