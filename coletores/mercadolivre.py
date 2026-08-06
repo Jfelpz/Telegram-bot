@@ -434,19 +434,17 @@ class MercadoLivre:
             anuncio.get("price", 0)
         )
 
-        preco_antigo = float(
-            anuncio.get(
-                "original_price",
-                preco
-            ) or preco
-        )
+        preco_antigo = anuncio.get("original_price")
+
+        if preco_antigo is None:
+            preco_antigo = preco
+
+        preco_antigo = float(preco_antigo)
 
         if preco_antigo > preco:
 
             desconto = round(
-                (preco_antigo - preco)
-                / preco_antigo
-                * 100,
+                ((preco_antigo - preco) / preco_antigo) * 100,
                 2
             )
 
@@ -455,10 +453,17 @@ class MercadoLivre:
             desconto = 0.0
 
         estoque = (
-            anuncio.get(
-                "available_quantity",
-                0
-            ) > 0
+            anuncio.get("available_quantity", 0) > 0
+        )
+
+        quantidade = anuncio.get(
+            "available_quantity",
+            0
+        )
+
+        vendidos = anuncio.get(
+            "sold_quantity",
+            0
         )
 
         imagem = ""
@@ -470,13 +475,51 @@ class MercadoLivre:
                 anuncio["pictures"][0].get("url", "")
             )
 
+        categoria = anuncio.get(
+            "category_id",
+            ""
+        )
+
+        marca = ""
+
+        modelo = ""
+
+        atributos = anuncio.get(
+            "attributes",
+            []
+        )
+
+        for atributo in atributos:
+
+            nome = atributo.get(
+                "id",
+                ""
+            ).upper()
+
+            if nome == "BRAND":
+
+                marca = atributo.get(
+                    "value_name",
+                    ""
+                )
+
+            elif nome == "MODEL":
+
+                modelo = atributo.get(
+                    "value_name",
+                    ""
+                )
+
         return {
 
             "erro": False,
 
             "loja": "Mercado Livre",
 
-            "produto": anuncio.get("title", ""),
+            "produto": anuncio.get(
+                "title",
+                ""
+            ),
 
             "preco": preco,
 
@@ -488,9 +531,22 @@ class MercadoLivre:
 
             "estoque": estoque,
 
-            "url": anuncio.get("permalink", url),
+            "quantidade": quantidade,
+
+            "vendidos": vendidos,
+
+            "categoria": categoria,
+
+            "marca": marca,
+
+            "modelo": modelo,
 
             "imagem": imagem,
+
+            "url": anuncio.get(
+                "permalink",
+                url
+            ),
 
             "identificador": item_id,
 
