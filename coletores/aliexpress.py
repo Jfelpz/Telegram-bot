@@ -46,15 +46,11 @@ class AliExpressCollector:
         )
 
         if not script:
-
             return None
 
         try:
-
             return json.loads(script.string)
-
-        except:
-
+        except Exception:
             return None
 
     # =====================================================
@@ -64,25 +60,17 @@ class AliExpressCollector:
     def _extrair_next_data(self, html):
 
         match = re.search(
-
             r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>',
-
             html,
-
             re.S
-
         )
 
         if not match:
-
             return None
 
         try:
-
             return json.loads(match.group(1))
-
-        except:
-
+        except Exception:
             return None
 
     # =====================================================
@@ -92,7 +80,6 @@ class AliExpressCollector:
     def _converter_preco(self, valor):
 
         if valor is None:
-
             return 0.0
 
         try:
@@ -111,7 +98,7 @@ class AliExpressCollector:
 
             )
 
-        except:
+        except Exception:
 
             return 0.0
 
@@ -121,157 +108,152 @@ class AliExpressCollector:
 
     def coletar(self, url):
 
-        html = self._baixar_html(url)
+        try:
 
-        json_ld = self._extrair_json_ld(html)
+            html = self._baixar_html(url)
 
-        next_data = self._extrair_next_data(html)
+            json_ld = self._extrair_json_ld(html)
 
-        nome = ""
+            next_data = self._extrair_next_data(html)
 
-        imagem = ""
+            nome = ""
 
-        preco = 0
+            imagem = ""
 
-        preco_antigo = 0
+            preco = 0.0
 
-        estoque = True
+            preco_antigo = 0.0
 
-        # =================================================
-        # JSON-LD
-        # =================================================
+            estoque = True
 
-        if json_ld:
+            # =================================================
+            # JSON-LD
+            # =================================================
 
-            nome = json_ld.get("name", "")
+            if json_ld:
 
-            imagem = json_ld.get("image", "")
+                nome = json_ld.get("name", "")
 
-            offers = json_ld.get("offers", {})
+                imagem = json_ld.get("image", "")
 
-            if isinstance(offers, dict):
+                offers = json_ld.get("offers", {})
 
-                preco = self._converter_preco(
+                if isinstance(offers, dict):
 
-                    offers.get("price")
+                    preco = self._converter_preco(
+                        offers.get("price")
+                    )
 
+            # =================================================
+            # NEXT DATA
+            # =================================================
+
+            if next_data:
+
+                texto = json.dumps(
+                    next_data,
+                    ensure_ascii=False
                 )
 
-        # =================================================
-        # NEXT DATA
-        # =================================================
+                # preço promocional
 
-        if next_data:
+                if preco == 0:
 
-            texto = json.dumps(
+                    match = re.search(
+                        r'"activityAmount"\s*:\s*([0-9.]+)',
+                        texto
+                    )
 
-                next_data,
+                    if match:
 
-                ensure_ascii=False
+                        preco = float(
+                            match.group(1)
+                        )
 
-            )
-
-            # preço promocional
-
-            if preco == 0:
+                # preço original
 
                 match = re.search(
-
-                    r'"activityAmount"\s*:\s*([0-9.]+)',
-
+                    r'"originalPrice"\s*:\s*([0-9.]+)',
                     texto
-
                 )
 
                 if match:
 
-                    preco = float(
-
+                    preco_antigo = float(
                         match.group(1)
-
                     )
 
-            # preço original
+                # estoque
 
-            match = re.search(
+                if '"availableQuantity":0' in texto:
 
-                r'"originalPrice"\s*:\s*([0-9.]+)',
+                    estoque = False
 
-                texto
+            # =================================================
+            # DESCONTO
+            # =================================================
 
-            )
+            desconto = 0.0
 
-            if match:
+            if preco_antigo > preco > 0:
 
-                preco_antigo = float(
-
-                    match.group(1)
-
+                desconto = round(
+                    (
+                        (preco_antigo - preco)
+                        / preco_antigo
+                    ) * 100,
+                    2
                 )
 
-            # estoque
+            # =================================================
+            # RETORNO PADRÃO
+            # =================================================
 
-            if '"availableQuantity":0' in texto:
+            return {
 
-                estoque = False
+                "erro": False,
 
-        # =================================================
-        # DESCONTO
-        # =================================================
+                "loja": "ALIEXPRESS",
 
-        desconto = 0
+                "produto": nome,
 
-        if preco_antigo > preco > 0:
+                "categoria": "",
 
-            desconto = round(
+                "preco": preco,
 
-                (
+                "preco_antigo": preco_antigo,
 
-                    (preco_antigo - preco)
+                "preco_pix": 0.0,
 
-                    / preco_antigo
+                "desconto": desconto,
 
-                ) * 100,
+                "estoque": estoque,
 
-                2
+                "imagem": imagem,
 
-            )
+                "url": url
 
-        # =================================================
-        # RETORNO PADRÃO
-        # =================================================
+            }
 
-        return {
+        except Exception as erro:
 
-            "loja": "ALIEXPRESS",
+            return {
 
-            "produto": nome,
+                "erro": True,
 
-            "categoria": "",
+                "mensagem": str(erro),
 
-            "preco": preco,
+                "url": url
 
-            "preco_antigo": preco_antigo,
+            }
 
-            "preco_pix": 0,
 
-            "desconto": desconto,
+# =====================================================
+# WRAPPER
+# =====================================================
 
-            "estoque": estoque,
+def coletar_aliexpress(url):
 
-            "imagem": imagem,
+    coletor = AliExpressCollector()
 
-            "url": url,
-
-            "erro": False
-
-        }
-    # =====================================================
-    # WRAPPER
-    # =====================================================
-    
-    def coletar_aliexpress(url):
-    
-        coletor = AliExpressCollector()
-    
-        return coletor.coletar(url)
+    return coletor.coletar(url)
