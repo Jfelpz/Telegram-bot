@@ -233,3 +233,12 @@ class MagaluCollector:
                 "url": url
 
             }
+    # ==========================================================
+    # WRAPPER
+    # ==========================================================
+    
+    def coletar_magalu(url: str):
+    
+        coletor = MagaluCollector()
+    
+        return coletor.coletar(url)
