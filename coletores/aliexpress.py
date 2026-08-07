@@ -266,3 +266,12 @@ class AliExpressCollector:
             "erro": False
 
         }
+    # =====================================================
+    # WRAPPER
+    # =====================================================
+    
+    def coletar_aliexpress(url):
+    
+        coletor = AliExpressCollector()
+    
+        return coletor.coletar(url)
