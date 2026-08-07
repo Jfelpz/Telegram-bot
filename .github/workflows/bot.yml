@@ -40,4 +40,4 @@ jobs:
           ML_CLIENT_SECRET: ${{ secrets.ML_CLIENT_SECRET }}
 
         run: |
-          python atualizador.py
+          python -u atualizador.py
