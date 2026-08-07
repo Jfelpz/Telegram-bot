@@ -351,20 +351,27 @@ class MercadoLivre:
         )
     
         if resposta.status_code == 401:
-    
+
             self.renovar_token()
-    
+        
             resposta = requests.delete(
                 url,
                 headers=self.headers(),
                 timeout=30
             )
-    
+        
+        print("================================")
+        print("DELETE:", url)
+        print("STATUS:", resposta.status_code)
+        print("BODY:")
+        print(resposta.text)
+        print("================================")
+        
         resposta.raise_for_status()
-    
+        
         if resposta.text:
             return resposta.json()
-    
+        
         return {}
 
     # =====================================================
