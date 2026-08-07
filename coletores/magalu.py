@@ -51,7 +51,7 @@ class MagaluCollector:
                     timeout=90000
                 )
 
-page.wait_for_timeout(3000)
+                page.wait_for_timeout(3000)
 
                 return page.content()
 
