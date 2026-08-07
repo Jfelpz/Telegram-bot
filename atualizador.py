@@ -31,6 +31,8 @@ def atualizar_produtos():
 
     produtos = carregar_banco()
 
+    print(f"Produtos encontrados na planilha: {len(produtos)}")
+
     colunas = obter_colunas(banco_sheet)
 
     atualizados = 0
@@ -39,6 +41,8 @@ def atualizar_produtos():
     houve_repostagem = False
 
     dados_atualizados = {}
+
+    print("Iniciando coleta...")
 
     for linha, produto in enumerate(produtos, start=2):
 
@@ -233,24 +237,24 @@ def atualizar_produtos():
         print(f"Imagem.................: {dados.get('imagem', '')}")
         print(f"Identificador..........: {dados.get('identificador', '')}")
         print("-" * 50)
-        print()
-        print("=" * 60)
-        print("FINALIZADO")
-        print("=" * 60)
-        print(f"Produtos atualizados: {atualizados}")
-        print(f"Erros: {erros}")
+    print()
+    print("=" * 60)
+    print("FINALIZADO")
+    print("=" * 60)
+    print(f"Produtos atualizados: {atualizados}")
+    print(f"Erros: {erros}")
     
-        # =====================================================
-        # RETORNO PARA O logic.py
-        # =====================================================
+    # =====================================================
+    # RETORNO PARA O logic.py
+    # =====================================================
     
-        return {
+    return {
     
-            "houve_repostagem": houve_repostagem,
+        "houve_repostagem": houve_repostagem,
     
-            "dados_atualizados": dados_atualizados
+        "dados_atualizados": dados_atualizados
     
-        }
+    }
     
     
     # =====================================================
