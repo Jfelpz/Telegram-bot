@@ -20,13 +20,23 @@ def identificar_loja(url):
 
     dominio = urlparse(url).netloc.lower()
 
-    if "magazineluiza" in dominio or "magalu" in dominio:
+    # Magazine Luiza / Magazine Você
+    if (
+        "magalu" in dominio
+        or "magazineluiza" in dominio
+        or "magazinevoce" in dominio
+    ):
         return "magalu"
 
+    # AliExpress
     if "aliexpress" in dominio:
         return "aliexpress"
 
-    if "mercadolivre" in dominio or "mercadolibre" in dominio:
+    # Mercado Livre
+    if (
+        "mercadolivre" in dominio
+        or "mercadolibre" in dominio
+    ):
         return "mercadolivre"
 
     return None
@@ -39,6 +49,8 @@ def identificar_loja(url):
 def coletar_produto(url):
 
     loja = identificar_loja(url)
+
+    print(f"Loja identificada: {loja}")
 
     if loja == "magalu":
         return coletar_magalu(url)
@@ -54,5 +66,5 @@ def coletar_produto(url):
 
     return {
         "erro": True,
-        "mensagem": "Loja não suportada."
+        "mensagem": f"Loja não suportada: {url}"
     }
