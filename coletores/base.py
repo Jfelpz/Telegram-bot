@@ -7,7 +7,6 @@ Responsável por identificar a loja e chamar o coletor correto.
 
 from urllib.parse import urlparse
 
-from coletores.amazon import coletar_amazon
 from coletores.magalu import coletar_magalu
 from coletores.aliexpress import coletar_aliexpress
 from coletores.mercadolivre import MercadoLivre
@@ -20,9 +19,6 @@ from coletores.mercadolivre import MercadoLivre
 def identificar_loja(url):
 
     dominio = urlparse(url).netloc.lower()
-
-    if "amazon" in dominio:
-        return "amazon"
 
     if "magazineluiza" in dominio or "magalu" in dominio:
         return "magalu"
@@ -43,9 +39,6 @@ def identificar_loja(url):
 def coletar_produto(url):
 
     loja = identificar_loja(url)
-
-    if loja == "amazon":
-        return coletar_amazon(url)
 
     elif loja == "magalu":
         return coletar_magalu(url)
