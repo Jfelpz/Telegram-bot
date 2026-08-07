@@ -208,9 +208,6 @@ def atualizar_produtos():
                 # CAMPOS ATUALIZADOS PELO COLETOR
                 # ======================================
 
-                colunas["URL_ORIGEM"]:
-                    dados.get("url", url),
-
                 colunas["IMAGEM"]:
                     dados.get("imagem", ""),
 
