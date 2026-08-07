@@ -47,9 +47,11 @@ class MagaluCollector:
 
                 page.goto(
                     url,
-                    wait_until="networkidle",
-                    timeout=self.TIMEOUT
+                    wait_until="domcontentloaded",
+                    timeout=90000
                 )
+
+page.wait_for_timeout(3000)
 
                 return page.content()
 
