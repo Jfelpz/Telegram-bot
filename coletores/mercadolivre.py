@@ -253,18 +253,18 @@ class MercadoLivre:
     def get(self, endpoint, **kwargs):
 
         url = API_URL + endpoint
-
+    
         resposta = requests.get(
             url,
             headers=self.headers(),
             timeout=30,
             **kwargs
         )
-
+    
         if resposta.status_code == 401:
-
+    
             self.renovar_token()
-
+    
             resposta = requests.get(
                 url,
                 headers=self.headers(),
@@ -272,8 +272,15 @@ class MercadoLivre:
                 **kwargs
             )
 
+        print("================================")
+        print("GET:", url)
+        print("STATUS:", resposta.status_code)
+        print("BODY:")
+        print(resposta.text)
+        print("================================")
+    
         resposta.raise_for_status()
-
+    
         return resposta.json()
 
     # =====================================================
