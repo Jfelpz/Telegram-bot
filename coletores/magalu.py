@@ -116,10 +116,6 @@ class MagaluCollector:
 
         subcategory = produto.get("subcategory", {})
 
-        # ------------------------------------------------------
-        # PREÇOS
-        # ------------------------------------------------------
-
         preco_antigo = float(
             price.get("price") or 0
         )
@@ -132,17 +128,10 @@ class MagaluCollector:
             price.get("bestPrice") or preco
         )
 
-        # ------------------------------------------------------
-        # DESCONTO REAL
-        # ------------------------------------------------------
-
         if preco_antigo > preco:
 
             desconto = round(
-                (
-                    (preco_antigo - preco)
-                    / preco_antigo
-                ) * 100,
+                ((preco_antigo - preco) / preco_antigo) * 100,
                 2
             )
 
@@ -150,11 +139,9 @@ class MagaluCollector:
 
             desconto = 0
 
-        # ------------------------------------------------------
-        # RETORNO
-        # ------------------------------------------------------
-
         return {
+
+            "erro": False,
 
             "loja": "MAGALU",
 
@@ -172,8 +159,6 @@ class MagaluCollector:
 
             "subcategoria": subcategory.get("name"),
 
-            # PREÇOS
-
             "preco": preco,
 
             "preco_antigo": preco_antigo,
@@ -182,17 +167,13 @@ class MagaluCollector:
 
             "desconto": desconto,
 
-            # ESTOQUE
-
             "estoque": bool(
                 produto.get("available")
             ),
 
-            # OUTROS DADOS
-
             "imagem": produto.get("image"),
 
-            "link": produto.get("path"),
+            "url": produto.get("path"),
 
             "parcelas": installment.get("quantity"),
 
@@ -233,12 +214,14 @@ class MagaluCollector:
                 "url": url
 
             }
-    # ==========================================================
-    # WRAPPER
-    # ==========================================================
-    
-    def coletar_magalu(url: str):
-    
-        coletor = MagaluCollector()
-    
-        return coletor.coletar(url)
+
+
+# ==========================================================
+# WRAPPER
+# ==========================================================
+
+def coletar_magalu(url: str):
+
+    coletor = MagaluCollector()
+
+    return coletor.coletar(url)
