@@ -401,17 +401,52 @@ class MercadoLivre:
     
         parametros = parse_qs(parsed.query)
     
-        # prioridade para o ID do anúncio (wid)
+        # -------------------------------------------------
+        # 1) PRIORIDADE TOTAL PARA O "wid"
+        # -------------------------------------------------
+    
         if "wid" in parametros:
     
-            return parametros["wid"][0]
+            wid = parametros["wid"][0].upper()
     
-        # depois procura qualquer MLBxxxx existente
-        resultado = re.search(r"(MLB\d+)", url.upper())
+            if wid.startswith("MLB"):
+    
+                return wid
+    
+        # -------------------------------------------------
+        # 2) Procura "wid=MLB..."
+        # -------------------------------------------------
+    
+        resultado = re.search(
+            r"wid=(MLB\d+)",
+            url,
+            re.IGNORECASE
+        )
     
         if resultado:
     
-            return resultado.group(1)
+            return resultado.group(1).upper()
+    
+        # -------------------------------------------------
+        # 3) Procura TODOS os MLB existentes na URL
+        # e utiliza o MAIOR deles.
+        # Normalmente o maior é o ID do anúncio.
+        # -------------------------------------------------
+    
+        ids = re.findall(
+            r"(MLB\d+)",
+            url.upper()
+        )
+    
+        if ids:
+    
+            ids = sorted(
+                ids,
+                key=lambda x: int(x.replace("MLB", "")),
+                reverse=True
+            )
+    
+            return ids[0]
     
         raise ValueError(
             f"Não foi possível identificar o Item ID da URL:\n{url}"
