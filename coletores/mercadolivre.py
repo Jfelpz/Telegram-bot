@@ -5,9 +5,10 @@ CLIENTE OFICIAL MERCADO LIVRE
 """
 
 import json
+import re
 from datetime import datetime, timedelta
 from pathlib import Path
-
+from urllib.parse import urlparse, parse_qs
 import requests
 
 from config import (
@@ -393,29 +394,25 @@ class MercadoLivre:
     # =====================================================
     # EXTRAI O ID DO ANÚNCIO A PARTIR DA URL
     # =====================================================
-
+    
     def extrair_item_id(self, url):
-
-        import re
-
-        padroes = [
-
-            r"(MLB\d+)",
-
-            r"item_id=(MLB\d+)",
-
-            r"/(MLB\d+)",
-
-        ]
-
-        for padrao in padroes:
-
-            resultado = re.search(padrao, url.upper())
-
-            if resultado:
-
-                return resultado.group(1)
-
+    
+        parsed = urlparse(url)
+    
+        parametros = parse_qs(parsed.query)
+    
+        # prioridade para o ID do anúncio (wid)
+        if "wid" in parametros:
+    
+            return parametros["wid"][0]
+    
+        # depois procura qualquer MLBxxxx existente
+        resultado = re.search(r"(MLB\d+)", url.upper())
+    
+        if resultado:
+    
+            return resultado.group(1)
+    
         raise ValueError(
             f"Não foi possível identificar o Item ID da URL:\n{url}"
         )
