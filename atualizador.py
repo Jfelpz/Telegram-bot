@@ -18,7 +18,6 @@ FUSO = ZoneInfo("America/Fortaleza")
 
 AUMENTO_MINIMO_REPOSTAGEM = 3.0
 
-
 # =====================================================
 # ATUALIZADOR
 # =====================================================
@@ -40,6 +39,7 @@ def atualizar_produtos():
 
     houve_repostagem = False
 
+    # Guarda todos os produtos coletados
     dados_atualizados = {}
 
     print("Iniciando coleta...")
@@ -75,6 +75,7 @@ def atualizar_produtos():
             erros += 1
             continue
 
+        # Guarda os dados completos para o logic.py
         dados_atualizados[linha] = dados
 
         desconto_novo = round(
@@ -120,6 +121,7 @@ def atualizar_produtos():
         ).strip().upper()
 
         novo_status = status
+
         # ================================================
         # REPOSTAGEM
         # ================================================
@@ -157,14 +159,11 @@ def atualizar_produtos():
 
                 novo_status = "PENDENTE"
 
-                print(
-                    "Produto voltou ao estoque."
-                )
+                print("Produto voltou ao estoque.")
 
         else:
 
             novo_status = "SEM_ESTOQUE"
-
         # ================================================
         # ATUALIZA PLANILHA
         # ================================================
@@ -206,7 +205,7 @@ def atualizar_produtos():
                     ),
 
                 # ======================================
-                # NOVOS CAMPOS
+                # CAMPOS ATUALIZADOS PELO COLETOR
                 # ======================================
 
                 colunas["URL_ORIGEM"]:
@@ -237,21 +236,79 @@ def atualizar_produtos():
         print(f"Imagem.................: {dados.get('imagem', '')}")
         print(f"Identificador..........: {dados.get('identificador', '')}")
         print("-" * 50)
+        # =====================================================
+    # FIM DA COLETA
+    # =====================================================
+
     print()
     print("=" * 60)
     print("FINALIZADO")
     print("=" * 60)
     print(f"Produtos atualizados: {atualizados}")
     print(f"Erros: {erros}")
-    
+
     # =====================================================
-    # RETORNO PARA O logic.py
+    # RETORNO PARA O BOT
     # =====================================================
-    
+
     return {
-    
+
         "houve_repostagem": houve_repostagem,
-    
+
         "dados_atualizados": dados_atualizados
-    
+
     }
+
+
+# =====================================================
+# EXECUÇÃO LOCAL (APENAS TESTE)
+# =====================================================
+
+if __name__ == "__main__":
+
+    resultado = atualizar_produtos()
+
+    print()
+    print("=" * 60)
+    print("RESUMO")
+    print("=" * 60)
+
+    print(
+        "Houve repostagem:",
+        resultado["houve_repostagem"]
+    )
+
+    print(
+        "Produtos coletados:",
+        len(resultado["dados_atualizados"])
+    )
+
+    if resultado["dados_atualizados"]:
+
+        print()
+
+        print("Produtos retornados:")
+
+        for linha, dados in resultado["dados_atualizados"].items():
+
+            print(
+                f"Linha {linha}"
+            )
+
+            print(
+                f"Produto : {dados.get('produto')}"
+            )
+
+            print(
+                f"Preço   : R$ {dados.get('preco', 0):.2f}"
+            )
+
+            print(
+                f"Desconto: {dados.get('desconto', 0):.2f}%"
+            )
+
+            print(
+                f"Estoque : {dados.get('estoque')}"
+            )
+
+            print("-" * 40)
