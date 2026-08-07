@@ -40,7 +40,7 @@ def coletar_produto(url):
 
     loja = identificar_loja(url)
 
-    elif loja == "magalu":
+    if loja == "magalu":
         return coletar_magalu(url)
 
     elif loja == "aliexpress":
