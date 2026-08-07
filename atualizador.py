@@ -255,38 +255,3 @@ def atualizar_produtos():
         "dados_atualizados": dados_atualizados
     
     }
-    
-    
-    # =====================================================
-    # EXECUÇÃO
-    # =====================================================
-    
-    if __name__ == "__main__":
-    
-        resultado = atualizar_produtos()
-    
-        print()
-        print("=" * 60)
-        print("RESUMO")
-        print("=" * 60)
-        print(
-            "Houve repostagem:",
-            resultado["houve_repostagem"]
-        )
-    
-        print(
-            "Produtos coletados:",
-            len(resultado["dados_atualizados"])
-        )
-    
-        if resultado["dados_atualizados"]:
-    
-            print("\nProdutos retornados:")
-    
-            for linha, dados in resultado["dados_atualizados"].items():
-    
-                print(
-                    f"Linha {linha}: "
-                    f"{dados.get('produto')} "
-                    f"- R$ {dados.get('preco', 0):.2f}"
-                )
