@@ -1,7 +1,5 @@
 import json
 import re
-from pathlib import Path
-from urllib.parse import urlparse, parse_qs
 
 from playwright.sync_api import sync_playwright
 
@@ -9,9 +7,15 @@ from playwright.sync_api import sync_playwright
 class MercadoLivreCollector:
     """
     Coletor via scraping público do Mercado Livre.
-    Não usa a API oficial (bloqueada pelo PolicyAgent para
-    leitura de itens de terceiros) — lê a mesma página pública
-    que qualquer visitante veria no navegador, sem login.
+
+    Não usa a API oficial: o endpoint /items/{id} está bloqueado
+    pelo PolicyAgent do Mercado Livre para leitura de itens de
+    terceiros (erro access_denied / PA_UNAUTHORIZED_RESULT_FROM_POLICIES),
+    mesmo com token válido e mesmo sem token. Testado e confirmado
+    que não é bloqueio de IP nem de escopo do app.
+
+    Este coletor lê a mesma página pública que qualquer visitante
+    veria no navegador, sem login e sem token.
     """
 
     USER_AGENT = (
@@ -28,10 +32,6 @@ class MercadoLivreCollector:
     TIMEOUT = 90000
 
     HEADLESS = True
-
-    # Pasta de debug: se a extração falhar, salva o HTML aqui
-    # para facilitar o ajuste dos seletores.
-    DEBUG_DIR = Path(__file__).resolve().parent.parent / "debugs"
 
     # ==========================================================
     # BAIXA HTML
@@ -70,21 +70,10 @@ class MercadoLivreCollector:
                     browser.close()
 
     # ==========================================================
-    # EXTRAI ITEM ID DA URL (mesma lógica já usada no projeto)
+    # EXTRAI ID DO ANÚNCIO (só para referência/debug)
     # ==========================================================
 
-    def _extrair_item_id(self, url: str) -> str:
-
-        parsed = urlparse(url)
-
-        parametros = parse_qs(parsed.query)
-
-        if "wid" in parametros:
-
-            wid = parametros["wid"][0].upper()
-
-            if wid.startswith("MLB"):
-                return wid
+    def _extrair_id(self, url: str) -> str:
 
         resultado = re.search(
             r"wid=(MLB\d+)",
@@ -113,8 +102,7 @@ class MercadoLivreCollector:
         return ""
 
     # ==========================================================
-    # TENTA EXTRAIR JSON-LD (application/ld+json) — método
-    # preferencial, mais estável que ler classes CSS.
+    # JSON-LD (método preferencial — mais estável que classes CSS)
     # ==========================================================
 
     def _extrair_json_ld(self, html: str) -> dict:
@@ -145,7 +133,7 @@ class MercadoLivreCollector:
         return {}
 
     # ==========================================================
-    # EXTRAI VIA META TAGS (og:) — fallback robusto
+    # META TAGS og: (fallback)
     # ==========================================================
 
     def _extrair_meta(self, html: str, propriedade: str) -> str:
@@ -159,7 +147,6 @@ class MercadoLivreCollector:
         if match:
             return match.group(1)
 
-        # Ordem de atributos pode vir invertida
         match = re.search(
             rf'<meta[^>]+content="([^"]*)"[^>]+property="{propriedade}"',
             html,
@@ -172,13 +159,11 @@ class MercadoLivreCollector:
         return ""
 
     # ==========================================================
-    # EXTRAI PREÇOS VIA CLASSES ANDES (fallback final)
+    # PREÇOS VIA CLASSES ANDES (fallback final)
     # ==========================================================
 
     def _extrair_precos_andes(self, html: str) -> dict:
 
-        # Preço anterior (riscado), dentro do container
-        # "ui-pdp-price__original-value"
         preco_antigo = None
 
         bloco_antigo = re.search(
@@ -190,8 +175,6 @@ class MercadoLivreCollector:
         if bloco_antigo:
             preco_antigo = bloco_antigo.group(1)
 
-        # Preço atual, dentro do container
-        # "ui-pdp-price__second-line"
         preco_atual = None
 
         bloco_atual = re.search(
@@ -203,8 +186,6 @@ class MercadoLivreCollector:
         if bloco_atual:
             preco_atual = bloco_atual.group(1)
 
-        # Fallback bem genérico: primeira ocorrência de
-        # andes-money-amount__fraction na página inteira
         if not preco_atual:
 
             generico = re.search(
@@ -221,10 +202,10 @@ class MercadoLivreCollector:
         }
 
     # ==========================================================
-    # CONVERTE STRING DE PREÇO "1.234,56" OU "1234" -> FLOAT
+    # CONVERTE STRING DE PREÇO -> FLOAT
     # ==========================================================
 
-    def _para_float(self, valor) -> float:
+    def _converter_preco(self, valor) -> float:
 
         if valor is None:
             return 0.0
@@ -242,7 +223,7 @@ class MercadoLivreCollector:
             return 0.0
 
     # ==========================================================
-    # ESTOQUE — procura por textos característicos de indisponível
+    # ESTOQUE
     # ==========================================================
 
     def _tem_estoque(self, html: str) -> bool:
@@ -268,12 +249,16 @@ class MercadoLivreCollector:
 
         try:
 
-            self.DEBUG_DIR.mkdir(
+            from pathlib import Path
+
+            debug_dir = Path(__file__).resolve().parent.parent / "debugs"
+
+            debug_dir.mkdir(
                 parents=True,
                 exist_ok=True
             )
 
-            caminho = self.DEBUG_DIR / f"ml_{item_id or 'sem_id'}.html"
+            caminho = debug_dir / f"ml_{item_id or 'sem_id'}.html"
 
             caminho.write_text(
                 html,
@@ -291,13 +276,11 @@ class MercadoLivreCollector:
 
     def coletar(self, url: str) -> dict:
 
-        item_id = self._extrair_item_id(url)
+        item_id = self._extrair_id(url)
 
         try:
 
             html = self._baixar_html(url)
-
-            # ---- 1) Tenta JSON-LD primeiro (mais confiável) ----
 
             json_ld = self._extrair_json_ld(html)
 
@@ -324,30 +307,26 @@ class MercadoLivreCollector:
                 ofertas.get("availability", "")
             ).lower()
 
-            # ---- 2) Fallback via meta tags (og:) ----
-
             if not titulo:
                 titulo = self._extrair_meta(html, "og:title")
 
             if not imagem:
                 imagem = self._extrair_meta(html, "og:image")
 
-            # ---- 3) Preços: usa JSON-LD se veio, senão Andes ----
-
             precos_andes = self._extrair_precos_andes(html)
 
-            preco = self._para_float(
+            preco = self._converter_preco(
                 preco_json_ld or precos_andes["preco_atual"]
             )
 
-            preco_antigo = self._para_float(
+            preco_antigo = self._converter_preco(
                 precos_andes["preco_antigo"]
             )
 
             if preco_antigo <= preco:
                 preco_antigo = preco
 
-            desconto = 0.0
+            desconto = 0
 
             if preco_antigo > preco > 0:
 
@@ -356,14 +335,10 @@ class MercadoLivreCollector:
                     2
                 )
 
-            # ---- 4) Estoque ----
-
             if disponibilidade:
                 estoque = "instock" in disponibilidade
             else:
                 estoque = self._tem_estoque(html)
-
-            # ---- Validação mínima ----
 
             if not titulo or preco <= 0:
 
@@ -372,8 +347,8 @@ class MercadoLivreCollector:
                 return {
                     "erro": True,
                     "mensagem": (
-                        "Não foi possível extrair título/preço. "
-                        "HTML salvo em debugs/ para ajuste."
+                        "Não foi possível extrair título/preço via scraping. "
+                        "HTML salvo em debugs/ para ajuste dos seletores."
                     ),
                     "url": url
                 }
@@ -386,17 +361,11 @@ class MercadoLivreCollector:
 
                 "id": item_id,
 
-                "sku": item_id,
-
                 "produto": titulo,
-
-                "descricao": "",
 
                 "marca": marca,
 
                 "categoria": "",
-
-                "subcategoria": "",
 
                 "preco": preco,
 
@@ -410,15 +379,7 @@ class MercadoLivreCollector:
 
                 "imagem": imagem,
 
-                "url": url,
-
-                "parcelas": None,
-
-                "valor_parcela": 0.0,
-
-                "avaliacao": None,
-
-                "total_avaliacoes": None
+                "url": url
 
             }
 
@@ -433,14 +394,3 @@ class MercadoLivreCollector:
                 "url": url
 
             }
-
-
-# ==========================================================
-# WRAPPER
-# ==========================================================
-
-def coletar_mercadolivre(url: str):
-
-    coletor = MercadoLivreCollector()
-
-    return coletor.coletar(url)
