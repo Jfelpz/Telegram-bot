@@ -20,7 +20,7 @@ class MagaluCollector:
         "height": 768
     }
 
-    TIMEOUT = 60000
+    TIMEOUT = 90000
 
     HEADLESS = True
 
@@ -48,7 +48,7 @@ class MagaluCollector:
                 page.goto(
                     url,
                     wait_until="domcontentloaded",
-                    timeout=90000
+                    timeout=self.TIMEOUT
                 )
 
                 page.wait_for_timeout(3000)
@@ -118,6 +118,10 @@ class MagaluCollector:
 
         subcategory = produto.get("subcategory", {})
 
+        # ------------------------------------------------------
+        # PREÇOS
+        # ------------------------------------------------------
+
         preco_antigo = float(
             price.get("price") or 0
         )
@@ -130,10 +134,17 @@ class MagaluCollector:
             price.get("bestPrice") or preco
         )
 
+        # ------------------------------------------------------
+        # DESCONTO REAL
+        # ------------------------------------------------------
+
         if preco_antigo > preco:
 
             desconto = round(
-                ((preco_antigo - preco) / preco_antigo) * 100,
+                (
+                    (preco_antigo - preco)
+                    / preco_antigo
+                ) * 100,
                 2
             )
 
@@ -141,9 +152,11 @@ class MagaluCollector:
 
             desconto = 0
 
-        return {
+        # ------------------------------------------------------
+        # RETORNO
+        # ------------------------------------------------------
 
-            "erro": False,
+        return {
 
             "loja": "MAGALU",
 
@@ -161,6 +174,8 @@ class MagaluCollector:
 
             "subcategoria": subcategory.get("name"),
 
+            # PREÇOS
+
             "preco": preco,
 
             "preco_antigo": preco_antigo,
@@ -169,13 +184,17 @@ class MagaluCollector:
 
             "desconto": desconto,
 
+            # ESTOQUE
+
             "estoque": bool(
                 produto.get("available")
             ),
 
+            # OUTROS DADOS
+
             "imagem": produto.get("image"),
 
-            "url": produto.get("path"),
+            "link": produto.get("path"),
 
             "parcelas": installment.get("quantity"),
 
@@ -216,14 +235,3 @@ class MagaluCollector:
                 "url": url
 
             }
-
-
-# ==========================================================
-# WRAPPER
-# ==========================================================
-
-def coletar_magalu(url: str):
-
-    coletor = MagaluCollector()
-
-    return coletor.coletar(url)
