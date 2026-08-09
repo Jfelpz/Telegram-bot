@@ -41,3 +41,12 @@ jobs:
 
         run: |
           python -u bot.py
+
+      - name: Upload HTML de debug (se houver)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-html
+          path: debugs/*.html
+          if-no-files-found: ignore
+          retention-days: 7
