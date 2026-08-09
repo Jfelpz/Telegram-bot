@@ -3,4 +3,4 @@ google-auth
 requests
 playwright
 beautifulsoup4
-Flask
+tzdata
