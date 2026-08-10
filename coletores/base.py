@@ -2,7 +2,6 @@ from urllib.parse import urlparse
 
 from coletores.magalu import MagaluCollector
 from coletores.aliexpress import AliExpressCollector
-from coletores.mercadolivre import MercadoLivreCollector
 
 
 class ColetorBase:
@@ -20,10 +19,6 @@ class ColetorBase:
             "pt.aliexpress.com": AliExpressCollector(),
             "best.aliexpress.com": AliExpressCollector(),
             "m.aliexpress.com": AliExpressCollector(),
-
-            # Mercado Livre
-            "mercadolivre.com.br": MercadoLivreCollector(),
-            "mercadolibre.com": MercadoLivreCollector(),
         }
 
     # =====================================================
