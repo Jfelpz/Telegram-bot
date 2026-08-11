@@ -39,6 +39,11 @@ jobs:
           ML_CLIENT_ID: ${{ secrets.ML_CLIENT_ID }}
           ML_CLIENT_SECRET: ${{ secrets.ML_CLIENT_SECRET }}
 
+          #Aliexpress
+          ALIEXPRESS_APP_KEY: ${{ secrets.ALIEXPRESS_APP_KEY}}
+          ALIEXPRESS_APP_SECRET: ${{ secrets.ALIEXPRESS_APP_SECRET}}
+          ALIEXPRESS_TRACKING_ID: ${{ secrets.ALIEXPRESS_TRACKING_ID}}
+
         run: |
           python -u bot.py
 
