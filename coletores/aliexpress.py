@@ -1,213 +1,102 @@
-import json
-import re
-import requests
+from aliexpress_api import AliexpressApi, models
 
-from bs4 import BeautifulSoup
+from config import (
+    ALIEXPRESS_APP_KEY,
+    ALIEXPRESS_APP_SECRET,
+    ALIEXPRESS_TRACKING_ID
+)
 
 
 class AliExpressCollector:
+    """
+    Coletor via API oficial de afiliados da AliExpress
+    (AliExpress Open Platform / Affiliate API), usando o
+    wrapper python-aliexpress-api.
 
-    HEADERS = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/138.0 Safari/537.36"
-        ),
-        "Accept-Language": "pt-BR,pt;q=0.9"
-    }
+    Diferente do Magalu e do antigo Mercado Livre, aqui não há
+    scraping: os dados do produto e o link de afiliado vêm
+    diretamente da API oficial, já autorizada pela conta de
+    afiliado aprovada.
+    """
 
-    # =====================================================
-    # BAIXA HTML
-    # =====================================================
+    def __init__(self):
 
-    def _baixar_html(self, url):
-
-        resposta = requests.get(
-            url,
-            headers=self.HEADERS,
-            timeout=30
+        self.api = AliexpressApi(
+            ALIEXPRESS_APP_KEY,
+            ALIEXPRESS_APP_SECRET,
+            models.Language.PT,
+            models.Currency.BRL,
+            ALIEXPRESS_TRACKING_ID
         )
 
-        resposta.raise_for_status()
+    # ==========================================================
+    # GERA O LINK DE AFILIADO PARA A URL DO PRODUTO
+    # ==========================================================
 
-        return resposta.text
-
-    # =====================================================
-    # JSON-LD
-    # =====================================================
-
-    def _extrair_json_ld(self, html):
-
-        soup = BeautifulSoup(html, "html.parser")
-
-        script = soup.find(
-            "script",
-            type="application/ld+json"
-        )
-
-        if not script:
-            return None
-
-        try:
-            return json.loads(script.string)
-        except Exception:
-            return None
-
-    # =====================================================
-    # NEXT DATA
-    # =====================================================
-
-    def _extrair_next_data(self, html):
-
-        match = re.search(
-            r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>',
-            html,
-            re.S
-        )
-
-        if not match:
-            return None
-
-        try:
-            return json.loads(match.group(1))
-        except Exception:
-            return None
-
-    # =====================================================
-    # PREÇO
-    # =====================================================
-
-    def _converter_preco(self, valor):
-
-        if valor is None:
-            return 0.0
+    def _gerar_link_afiliado(self, url: str) -> str:
 
         try:
 
-            return float(
+            links = self.api.get_affiliate_links(url)
 
-                str(valor)
+            if links:
+                return links[0].promotion_link
 
-                .replace("R$", "")
+        except Exception as erro:
 
-                .replace(".", "")
-
-                .replace(",", ".")
-
-                .strip()
-
+            print(
+                "Aviso: não foi possível gerar o link de afiliado:",
+                erro
             )
 
-        except Exception:
+        return url
 
-            return 0.0
+    # ==========================================================
+    # MÉTODO PRINCIPAL
+    # ==========================================================
 
-    # =====================================================
-    # COLETA
-    # =====================================================
-
-    def coletar(self, url):
+    def coletar(self, url: str) -> dict:
 
         try:
 
-            html = self._baixar_html(url)
+            produtos = self.api.get_products_details([url])
 
-            json_ld = self._extrair_json_ld(html)
+            if not produtos:
 
-            next_data = self._extrair_next_data(html)
+                return {
+                    "erro": True,
+                    "mensagem": "Produto não encontrado na API.",
+                    "url": url
+                }
 
-            nome = ""
+            produto = produtos[0]
 
-            imagem = ""
+            preco = float(
+                getattr(produto, "target_sale_price", 0) or 0
+            )
 
-            preco = 0.0
+            preco_antigo = float(
+                getattr(produto, "target_original_price", 0) or preco
+            )
 
-            preco_antigo = 0.0
+            if preco_antigo < preco:
+                preco_antigo = preco
 
-            estoque = True
-
-            # =================================================
-            # JSON-LD
-            # =================================================
-
-            if json_ld:
-
-                nome = json_ld.get("name", "")
-
-                imagem = json_ld.get("image", "")
-
-                offers = json_ld.get("offers", {})
-
-                if isinstance(offers, dict):
-
-                    preco = self._converter_preco(
-                        offers.get("price")
-                    )
-
-            # =================================================
-            # NEXT DATA
-            # =================================================
-
-            if next_data:
-
-                texto = json.dumps(
-                    next_data,
-                    ensure_ascii=False
-                )
-
-                # preço promocional
-
-                if preco == 0:
-
-                    match = re.search(
-                        r'"activityAmount"\s*:\s*([0-9.]+)',
-                        texto
-                    )
-
-                    if match:
-
-                        preco = float(
-                            match.group(1)
-                        )
-
-                # preço original
-
-                match = re.search(
-                    r'"originalPrice"\s*:\s*([0-9.]+)',
-                    texto
-                )
-
-                if match:
-
-                    preco_antigo = float(
-                        match.group(1)
-                    )
-
-                # estoque
-
-                if '"availableQuantity":0' in texto:
-
-                    estoque = False
-
-            # =================================================
-            # DESCONTO
-            # =================================================
-
-            desconto = 0.0
+            desconto = 0
 
             if preco_antigo > preco > 0:
 
                 desconto = round(
-                    (
-                        (preco_antigo - preco)
-                        / preco_antigo
-                    ) * 100,
+                    ((preco_antigo - preco) / preco_antigo) * 100,
                     2
                 )
 
-            # =================================================
-            # RETORNO PADRÃO
-            # =================================================
+            link_afiliado = self._gerar_link_afiliado(url)
+
+            categoria = (
+                getattr(produto, "second_level_category_name", "")
+                or getattr(produto, "first_level_category_name", "")
+            )
 
             return {
 
@@ -215,23 +104,25 @@ class AliExpressCollector:
 
                 "loja": "ALIEXPRESS",
 
-                "produto": nome,
+                "id": getattr(produto, "product_id", ""),
 
-                "categoria": "",
+                "produto": getattr(produto, "product_title", ""),
+
+                "categoria": categoria,
 
                 "preco": preco,
 
                 "preco_antigo": preco_antigo,
 
-                "preco_pix": 0.0,
+                "preco_pix": preco,
 
                 "desconto": desconto,
 
-                "estoque": estoque,
+                "estoque": True,
 
-                "imagem": imagem,
+                "imagem": getattr(produto, "product_main_image_url", ""),
 
-                "url": url
+                "url": link_afiliado
 
             }
 
@@ -246,14 +137,3 @@ class AliExpressCollector:
                 "url": url
 
             }
-
-
-# =====================================================
-# WRAPPER
-# =====================================================
-
-def coletar_aliexpress(url):
-
-    coletor = AliExpressCollector()
-
-    return coletor.coletar(url)
