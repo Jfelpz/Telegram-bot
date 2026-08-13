@@ -7,7 +7,8 @@ from sheets import (
     carregar_banco,
     banco_sheet,
     obter_colunas,
-    atualizar_linha
+    atualizar_linha,
+    garantir_ids
 )
 
 FUSO = ZoneInfo("America/Fortaleza")
@@ -33,6 +34,11 @@ def atualizar_produtos():
     print(f"Produtos encontrados na planilha: {len(produtos)}")
 
     colunas = obter_colunas(banco_sheet)
+
+    ids_gerados = garantir_ids(produtos, colunas)
+
+    if ids_gerados:
+        print(f"IDs gerados nesta execução: {ids_gerados}")
 
     atualizados = 0
     erros = 0
