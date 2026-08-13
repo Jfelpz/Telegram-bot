@@ -59,6 +59,18 @@ def atualizar_produtos():
         if not url:
             continue
 
+        ativo = str(
+            produto.get("ATIVO", "")
+        ).strip().upper()
+
+        if ativo not in ("TRUE", "VERDADEIRO"):
+
+            print(
+                f"[{linha}] Ignorado -> ATIVO desmarcado"
+            )
+
+            continue
+
         print()
         print(f"[{linha}] Atualizando...")
         print(url)
@@ -315,3 +327,4 @@ if __name__ == "__main__":
             )
 
             print("-" * 40)
+            
