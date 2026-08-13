@@ -1,4 +1,7 @@
 import json
+import random
+import string
+
 import gspread
 
 from google.oauth2.service_account import Credentials
@@ -132,6 +135,131 @@ def obter_colunas(aba):
         for indice, coluna in enumerate(cabecalho)
 
     }
+
+
+# ==================================================
+# GERAÇÃO DE ID ÚNICO
+# ==================================================
+
+# Iniciais conhecidas por loja. Lojas não listadas aqui usam
+# automaticamente as 3 primeiras letras do nome (fallback).
+INICIAIS_LOJA = {
+    "MAGALU": "MAG",
+    "ALIEXPRESS": "ALI",
+    "MERCADO_LIVRE": "MEL",
+    "MERCADO LIVRE": "MEL",
+    "SHOPEE": "SHO",
+    "KABUM": "KAB",
+    "SAMSUNG": "SAM",
+}
+
+
+def obter_iniciais_loja(loja: str) -> str:
+
+    loja_normalizada = str(loja).strip().upper()
+
+    if loja_normalizada in INICIAIS_LOJA:
+        return INICIAIS_LOJA[loja_normalizada]
+
+    # Fallback: 3 primeiras letras do nome da loja
+    apenas_letras = "".join(
+        c for c in loja_normalizada if c.isalpha()
+    )
+
+    return (apenas_letras[:3] or "LOJ")
+
+
+def gerar_codigo_aleatorio(tamanho: int = 6) -> str:
+
+    caracteres = string.ascii_uppercase + string.digits
+
+    return "".join(
+        random.choice(caracteres)
+        for _ in range(tamanho)
+    )
+
+
+def gerar_id_unico(loja: str, categoria: str, ids_existentes: set) -> str:
+    """
+    Gera um ID no formato INICIAISCODIGOCAT (ex: MAG2T5X4QCEL),
+    garantindo que não colide com nenhum ID já existente
+    na planilha (ids_existentes).
+    """
+
+    iniciais = obter_iniciais_loja(loja)
+
+    apenas_letras_categoria = "".join(
+        c for c in str(categoria).strip().upper() if c.isalpha()
+    )
+
+    categoria_normalizada = apenas_letras_categoria[:3] or "GER"
+
+    while True:
+
+        codigo = gerar_codigo_aleatorio()
+
+        novo_id = f"{iniciais}{codigo}{categoria_normalizada}"
+
+        if novo_id not in ids_existentes:
+
+            ids_existentes.add(novo_id)
+
+            return novo_id
+
+
+def garantir_ids(produtos: list, colunas: dict) -> int:
+    """
+    Percorre os produtos carregados da planilha e, para cada
+    linha sem valor na coluna ID, gera um ID único e grava
+    direto na planilha. Atualiza também o dicionário 'produto'
+    em memória, para uso imediato no restante da execução.
+
+    Retorna a quantidade de IDs novos gerados.
+    """
+
+    if "ID" not in colunas:
+
+        print(
+            "Aviso: coluna ID não encontrada na planilha; "
+            "geração de ID pulada."
+        )
+
+        return 0
+
+    ids_existentes = {
+        str(produto.get("ID", "")).strip()
+        for produto in produtos
+        if str(produto.get("ID", "")).strip()
+    }
+
+    gerados = 0
+
+    for produto in produtos:
+
+        id_atual = str(produto.get("ID", "")).strip()
+
+        if id_atual:
+            continue
+
+        loja = produto.get("LOJA", "")
+        categoria = produto.get("CATEGORIA", "")
+
+        novo_id = gerar_id_unico(loja, categoria, ids_existentes)
+
+        atualizar_celula(
+            banco_sheet,
+            produto["ROW_NUMBER"],
+            colunas["ID"],
+            novo_id
+        )
+
+        produto["ID"] = novo_id
+
+        gerados += 1
+
+        print(f"[ID] Linha {produto['ROW_NUMBER']}: {novo_id}")
+
+    return gerados
 
 
 # ==================================================
