@@ -32,6 +32,14 @@ ALIEXPRESS_TRACKING_ID = os.getenv("ALIEXPRESS_TRACKING_ID", "default")
 
 
 # ==================================================
+# 🛍️ SHOPEE
+# ==================================================
+
+SHOPEE_APP_ID = os.getenv("SHOPEE_APP_ID")
+SHOPEE_APP_SECRET = os.getenv("SHOPEE_APP_SECRET")
+
+
+# ==================================================
 # 🌐 SCRAPER API
 # ==================================================
 
