@@ -1,3 +1,4 @@
+import random
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -44,6 +45,84 @@ def dentro_do_horario(config):
 
 
 # =====================================================
+# INTERVALO ENTRE POSTAGENS
+# =====================================================
+
+def calcular_ultima_postagem(produtos):
+    """
+    Varre todos os produtos e retorna o datetime da postagem
+    mais recente (coluna DATA_POSTAGEM), ou None se nenhum
+    produto foi postado ainda.
+    """
+
+    ultima = None
+
+    for produto in produtos:
+
+        data_str = str(
+            produto.get("DATA_POSTAGEM", "")
+        ).strip()
+
+        if not data_str:
+            continue
+
+        try:
+
+            data = datetime.strptime(
+                data_str,
+                "%d/%m/%Y %H:%M"
+            ).replace(tzinfo=FUSO)
+
+        except:
+            continue
+
+        if ultima is None or data > ultima:
+            ultima = data
+
+    return ultima
+
+
+def intervalo_respeitado(config, produtos):
+    """
+    Sorteia um intervalo alvo (em minutos) entre INTERVALO_MIN
+    e INTERVALO_MAX, e verifica se já se passou tempo suficiente
+    desde a última postagem real.
+    """
+
+    ultima_postagem = calcular_ultima_postagem(produtos)
+
+    if ultima_postagem is None:
+        # Nunca postou nada ainda: libera
+        return True, 0, 0
+
+    intervalo_min = float(
+        config.get("INTERVALO_MIN", 25)
+    )
+
+    intervalo_max = float(
+        config.get("INTERVALO_MAX", 30)
+    )
+
+    if intervalo_max < intervalo_min:
+        intervalo_max = intervalo_min
+
+    intervalo_alvo = random.uniform(
+        intervalo_min,
+        intervalo_max
+    )
+
+    minutos_passados = (
+        datetime.now(FUSO) - ultima_postagem
+    ).total_seconds() / 60
+
+    return (
+        minutos_passados >= intervalo_alvo,
+        minutos_passados,
+        intervalo_alvo
+    )
+
+
+# =====================================================
 # PROCESSAMENTO
 # =====================================================
 
@@ -60,6 +139,8 @@ def processar(dados_atualizados):
     print("DESCONTO_MINIMO:", config.get("DESCONTO_MINIMO"))
     print("HORA_INICIO:", config.get("HORA_INICIO"))
     print("HORA_FIM:", config.get("HORA_FIM"))
+    print("INTERVALO_MIN:", config.get("INTERVALO_MIN"))
+    print("INTERVALO_MAX:", config.get("INTERVALO_MAX"))
 
     if not config.get("BOT_ATIVO", True):
 
@@ -78,6 +159,31 @@ def processar(dados_atualizados):
     produtos = carregar_banco()
 
     print(f"\nProdutos encontrados: {len(produtos)}")
+
+    # ==========================================
+    # INTERVALO ENTRE POSTAGENS
+    # ==========================================
+
+    pode_postar, minutos_passados, intervalo_alvo = (
+        intervalo_respeitado(config, produtos)
+    )
+
+    if not pode_postar:
+
+        print(
+            f"\nINTERVALO NÃO ATINGIDO "
+            f"({minutos_passados:.1f} min passados, "
+            f"aguardando {intervalo_alvo:.1f} min)"
+        )
+
+        return
+
+    if intervalo_alvo:
+
+        print(
+            f"\nIntervalo liberado "
+            f"({minutos_passados:.1f} min >= {intervalo_alvo:.1f} min)"
+        )
 
     colunas = obter_colunas(banco_sheet)
 
@@ -167,17 +273,17 @@ def processar(dados_atualizados):
         # ==========================================
         # LINK
         # ==========================================
-        
+
         link = str(
             produto.get("LINK_AFILIADO", "")
         ).strip()
-        
+
         if not link.startswith("http"):
-        
+
             print("IGNORADO -> LINK INVÁLIDO")
-        
+
             continue
-        
+
         # Sempre utiliza o link de afiliado
         dados["url"] = link
 
