@@ -29,12 +29,18 @@ class ShopeeCollector:
     # ==========================================================
     # EXTRAI O ITEM ID DA URL DO PRODUTO
     # ==========================================================
-    # URLs da Shopee seguem o padrão:
+    # URLs da Shopee aparecem em pelo menos dois formatos:
     # https://shopee.com.br/produto-nome-i.SHOPID.ITEMID
+    # https://shopee.com.br/product/SHOPID/ITEMID
 
     def _extrair_item_id(self, url: str) -> str:
 
         resultado = re.search(r"i\.\d+\.(\d+)", url)
+
+        if resultado:
+            return resultado.group(1)
+
+        resultado = re.search(r"/product/\d+/(\d+)", url)
 
         if resultado:
             return resultado.group(1)
