@@ -19,6 +19,72 @@ FUSO = ZoneInfo("America/Fortaleza")
 
 AUMENTO_MINIMO_REPOSTAGEM = 3.0
 
+# Classificação das lojas por tipo de coleta.
+# Ao adicionar uma nova loja, só precisa incluir aqui.
+LOJAS_SCRAPING = {"MAGALU"}
+LOJAS_API = {"ALIEXPRESS", "SHOPEE"}
+
+
+# =====================================================
+# INTERCALA PRODUTOS POR TIPO (SCRAPING x API)
+# =====================================================
+
+def classificar_loja(loja: str) -> str:
+
+    loja_normalizada = str(loja).strip().upper()
+
+    if loja_normalizada in LOJAS_SCRAPING:
+        return "SCRAPING"
+
+    if loja_normalizada in LOJAS_API:
+        return "API"
+
+    return "OUTRO"
+
+
+def intercalar_por_tipo(produtos: list) -> list:
+    """
+    Reordena os produtos alternando entre lojas de scraping
+    (ex: Magalu) e lojas de API oficial (ex: AliExpress, Shopee),
+    para não enfileirar várias esperas longas de scraping
+    seguidas. Produtos de lojas ainda não classificadas vão
+    para o final, na ordem original.
+    """
+
+    scraping = [
+        p for p in produtos
+        if classificar_loja(p.get("LOJA", "")) == "SCRAPING"
+    ]
+
+    api = [
+        p for p in produtos
+        if classificar_loja(p.get("LOJA", "")) == "API"
+    ]
+
+    outros = [
+        p for p in produtos
+        if classificar_loja(p.get("LOJA", "")) == "OUTRO"
+    ]
+
+    intercalado = []
+
+    i = j = 0
+
+    while i < len(scraping) or j < len(api):
+
+        if i < len(scraping):
+            intercalado.append(scraping[i])
+            i += 1
+
+        if j < len(api):
+            intercalado.append(api[j])
+            j += 1
+
+    intercalado.extend(outros)
+
+    return intercalado
+
+
 # =====================================================
 # ATUALIZADOR
 # =====================================================
@@ -40,6 +106,8 @@ def atualizar_produtos():
     if ids_gerados:
         print(f"IDs gerados nesta execução: {ids_gerados}")
 
+    produtos_ordenados = intercalar_por_tipo(produtos)
+
     atualizados = 0
     erros = 0
 
@@ -50,7 +118,9 @@ def atualizar_produtos():
 
     print("Iniciando coleta...")
 
-    for linha, produto in enumerate(produtos, start=2):
+    for produto in produtos_ordenados:
+
+        linha = produto["ROW_NUMBER"]
 
         url = str(
             produto.get("URL_ORIGEM", "")
