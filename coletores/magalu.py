@@ -1,4 +1,5 @@
 import json
+import random
 import re
 
 from playwright.sync_api import sync_playwright
@@ -23,6 +24,11 @@ class MagaluCollector:
     TIMEOUT = 90000
 
     HEADLESS = True
+
+    # Intervalo aleatório de espera após carregar a página,
+    # para disfarçar o padrão de automação (em segundos).
+    ESPERA_MIN_SEGUNDOS = 40
+    ESPERA_MAX_SEGUNDOS = 93  # 1 minuto e 33 segundos
 
     # ==========================================================
     # BAIXA HTML
@@ -51,7 +57,19 @@ class MagaluCollector:
                     timeout=self.TIMEOUT
                 )
 
-                page.wait_for_timeout(3000)
+                espera_segundos = random.uniform(
+                    self.ESPERA_MIN_SEGUNDOS,
+                    self.ESPERA_MAX_SEGUNDOS
+                )
+
+                print(
+                    f"Aguardando {espera_segundos:.1f}s "
+                    f"antes de ler a página..."
+                )
+
+                page.wait_for_timeout(
+                    int(espera_segundos * 1000)
+                )
 
                 return page.content()
 
@@ -118,10 +136,6 @@ class MagaluCollector:
 
         subcategory = produto.get("subcategory", {})
 
-        # ------------------------------------------------------
-        # PREÇOS
-        # ------------------------------------------------------
-
         preco_antigo = float(
             price.get("price") or 0
         )
@@ -134,17 +148,10 @@ class MagaluCollector:
             price.get("bestPrice") or preco
         )
 
-        # ------------------------------------------------------
-        # DESCONTO REAL
-        # ------------------------------------------------------
-
         if preco_antigo > preco:
 
             desconto = round(
-                (
-                    (preco_antigo - preco)
-                    / preco_antigo
-                ) * 100,
+                ((preco_antigo - preco) / preco_antigo) * 100,
                 2
             )
 
@@ -152,11 +159,9 @@ class MagaluCollector:
 
             desconto = 0
 
-        # ------------------------------------------------------
-        # RETORNO
-        # ------------------------------------------------------
-
         return {
+
+            "erro": False,
 
             "loja": "MAGALU",
 
@@ -174,8 +179,6 @@ class MagaluCollector:
 
             "subcategoria": subcategory.get("name"),
 
-            # PREÇOS
-
             "preco": preco,
 
             "preco_antigo": preco_antigo,
@@ -184,17 +187,13 @@ class MagaluCollector:
 
             "desconto": desconto,
 
-            # ESTOQUE
-
             "estoque": bool(
                 produto.get("available")
             ),
 
-            # OUTROS DADOS
-
             "imagem": produto.get("image"),
 
-            "link": produto.get("path"),
+            "url": produto.get("path"),
 
             "parcelas": installment.get("quantity"),
 
@@ -235,3 +234,14 @@ class MagaluCollector:
                 "url": url
 
             }
+
+
+# ==========================================================
+# WRAPPER
+# ==========================================================
+
+def coletar_magalu(url: str):
+
+    coletor = MagaluCollector()
+
+    return coletor.coletar(url)
