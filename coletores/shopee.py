@@ -10,6 +10,7 @@ from config import (
     SHOPEE_APP_SECRET
 )
 
+
 API_URL = "https://open-api.affiliate.shopee.com.br/graphql"
 
 
@@ -19,33 +20,53 @@ class ShopeeCollector:
     (Open API / Affiliate GraphQL API).
 
     Autenticação por assinatura SHA256 no header Authorization:
-    Signature = SHA256(AppId + Timestamp + Payload + Secret)
 
-    Sem scraping: dados do produto e link de afiliado vêm
-    direto da API, usando o App ID/Secret liberados pela Shopee
-    após a solicitação de acesso via Central de Ajuda.
+    Signature = SHA256(
+        AppId + Timestamp + Payload + Secret
+    )
+
+    Sem scraping: dados do produto e link de afiliado
+    vêm diretamente da API oficial da Shopee.
     """
 
     # ==========================================================
-    # EXTRAI O ITEM ID DA URL DO PRODUTO
+    # EXTRAI SHOP ID E ITEM ID DA URL DO PRODUTO
     # ==========================================================
-    # URLs da Shopee aparecem em pelo menos dois formatos:
+    #
+    # Formatos suportados:
+    #
     # https://shopee.com.br/produto-nome-i.SHOPID.ITEMID
+    #
     # https://shopee.com.br/product/SHOPID/ITEMID
+    #
 
-    def _extrair_item_id(self, url: str) -> str:
+    def _extrair_ids(self, url: str):
 
-        resultado = re.search(r"i\.\d+\.(\d+)", url)
+        resultado = re.search(
+            r"i\.(\d+)\.(\d+)",
+            url
+        )
 
         if resultado:
-            return resultado.group(1)
 
-        resultado = re.search(r"/product/\d+/(\d+)", url)
+            return {
+                "shop_id": resultado.group(1),
+                "item_id": resultado.group(2)
+            }
+
+        resultado = re.search(
+            r"/product/(\d+)/(\d+)",
+            url
+        )
 
         if resultado:
-            return resultado.group(1)
 
-        return ""
+            return {
+                "shop_id": resultado.group(1),
+                "item_id": resultado.group(2)
+            }
+
+        return None
 
     # ==========================================================
     # ASSINATURA SHA256
@@ -56,7 +77,10 @@ class ShopeeCollector:
         timestamp = str(int(time.time()))
 
         base = (
-            f"{SHOPEE_APP_ID}{timestamp}{payload_str}{SHOPEE_APP_SECRET}"
+            f"{SHOPEE_APP_ID}"
+            f"{timestamp}"
+            f"{payload_str}"
+            f"{SHOPEE_APP_SECRET}"
         )
 
         assinatura = hashlib.sha256(
@@ -66,22 +90,30 @@ class ShopeeCollector:
         return timestamp, assinatura
 
     # ==========================================================
-    # CHAMADA GENÉRICA À API (GraphQL)
+    # CHAMADA GENÉRICA À API GRAPHQL
     # ==========================================================
 
     def _chamar_api(self, query: str) -> dict:
 
+        payload = {
+            "query": query
+        }
+
         payload_str = json.dumps(
-            {"query": query},
+            payload,
             separators=(",", ":")
         )
 
-        timestamp, assinatura = self._assinar(payload_str)
+        timestamp, assinatura = self._assinar(
+            payload_str
+        )
 
         headers = {
             "Content-Type": "application/json",
+            "Accept": "application/json",
             "Authorization": (
-                f"SHA256 Credential={SHOPEE_APP_ID}, "
+                f"SHA256 "
+                f"Credential={SHOPEE_APP_ID}, "
                 f"Timestamp={timestamp}, "
                 f"Signature={assinatura}"
             )
@@ -94,136 +126,327 @@ class ShopeeCollector:
             timeout=30
         )
 
+        print(
+            f"Status Shopee: {resposta.status_code}"
+        )
+
+        # Mostra o conteúdo da resposta caso ocorra erro HTTP
+        if resposta.status_code >= 400:
+
+            print(
+                "Resposta da Shopee:",
+                resposta.text
+            )
+
         resposta.raise_for_status()
 
         dados = resposta.json()
 
+        # Erros retornados pelo GraphQL
         if dados.get("errors"):
-            raise Exception(str(dados["errors"]))
+
+            print(
+                "Erro GraphQL:",
+                dados["errors"]
+            )
+
+            raise Exception(
+                str(dados["errors"])
+            )
 
         return dados.get("data", {})
 
     # ==========================================================
-    # GERA O LINK DE AFILIADO (short link) PARA A URL DO PRODUTO
+    # GERA LINK DE AFILIADO
     # ==========================================================
 
-    def _gerar_link_afiliado(self, url: str) -> str:
+    def _gerar_link_afiliado(
+        self,
+        url: str
+    ) -> str:
 
         mutation = f"""
         mutation {{
-          generateShortLink(
-            input: {{
-              originUrl: {json.dumps(url)}
-              subIds: ["telegram", "bot"]
+            generateShortLink(
+                input: {{
+                    originUrl: {json.dumps(url)}
+                    subIds: [
+                        "telegram",
+                        "bot"
+                    ]
+                }}
+            ) {{
+                shortLink
             }}
-          ) {{
-            shortLink
-          }}
         }}
         """
 
         try:
 
-            dados = self._chamar_api(mutation)
+            dados = self._chamar_api(
+                mutation
+            )
 
-            return dados["generateShortLink"]["shortLink"]
+            resultado = dados.get(
+                "generateShortLink",
+                {}
+            )
+
+            link = resultado.get(
+                "shortLink"
+            )
+
+            if link:
+
+                return link
+
+            print(
+                "Aviso: API não retornou shortLink."
+            )
+
+            return url
 
         except Exception as erro:
 
             print(
-                "Aviso: não foi possível gerar o link de afiliado:",
+                "Aviso: não foi possível "
+                "gerar o link de afiliado:",
                 erro
             )
 
             return url
 
     # ==========================================================
-    # MÉTODO PRINCIPAL
+    # BUSCA O PRODUTO
     # ==========================================================
 
-    def coletar(self, url: str) -> dict:
-
-        item_id = self._extrair_item_id(url)
-
-        if not item_id:
-
-            return {
-                "erro": True,
-                "mensagem": (
-                    "Não foi possível identificar o itemId na URL "
-                    "(esperado o padrão .../i.SHOPID.ITEMID)."
-                ),
-                "url": url
-            }
+    def _buscar_produto(
+        self,
+        item_id: str
+    ):
 
         query = f"""
         {{
-          productOfferV2(itemId: {item_id}, page: 1, limit: 1) {{
-            nodes {{
-              itemId
-              productName
-              imageUrl
-              priceMin
-              priceMax
-              priceDiscountRate
-              shopName
+            productOfferV2(
+                itemId: {item_id},
+                page: 1,
+                limit: 1
+            ) {{
+                nodes {{
+                    itemId
+                    productName
+                    imageUrl
+                    priceMin
+                    priceMax
+                    priceDiscountRate
+                    shopName
+                }}
             }}
-          }}
         }}
         """
 
+        dados = self._chamar_api(
+            query
+        )
+
+        nodes = (
+            dados
+            .get("productOfferV2", {})
+            .get("nodes", [])
+        )
+
+        if not nodes:
+
+            return None
+
+        return nodes[0]
+
+    # ==========================================================
+    # MÉTODO PRINCIPAL
+    # ==========================================================
+
+    def coletar(
+        self,
+        url: str
+    ) -> dict:
+
+        print("=" * 50)
+        print("INICIANDO COLETA - SHOPEE")
+        print("=" * 50)
+
+        print(
+            f"URL recebida: {url}"
+        )
+
+        # ------------------------------------------------------
+        # EXTRAI SHOP ID E ITEM ID
+        # ------------------------------------------------------
+
+        ids = self._extrair_ids(
+            url
+        )
+
+        if not ids:
+
+            return {
+                "erro": True,
+
+                "mensagem": (
+                    "Não foi possível identificar "
+                    "o Shop ID e Item ID na URL."
+                ),
+
+                "url": url
+            }
+
+        shop_id = ids["shop_id"]
+
+        item_id = ids["item_id"]
+
+        print(
+            f"Shop ID: {shop_id}"
+        )
+
+        print(
+            f"Item ID: {item_id}"
+        )
+
         try:
 
-            dados = self._chamar_api(query)
+            # --------------------------------------------------
+            # BUSCA PRODUTO NA API
+            # --------------------------------------------------
 
-            nodes = (
-                dados.get("productOfferV2", {}).get("nodes", [])
+            produto = self._buscar_produto(
+                item_id
             )
 
-            if not nodes:
+            if not produto:
 
                 return {
                     "erro": True,
-                    "mensagem": "Produto não encontrado na API.",
+
+                    "mensagem": (
+                        "Produto não encontrado "
+                        "na API da Shopee."
+                    ),
+
+                    "shop_id": shop_id,
+
+                    "item_id": item_id,
+
                     "url": url
                 }
 
-            produto = nodes[0]
+            # --------------------------------------------------
+            # PREÇO
+            # --------------------------------------------------
 
-            preco = float(produto.get("priceMin") or 0)
-
-            desconto_fracao = float(
-                produto.get("priceDiscountRate") or 0
+            preco = float(
+                produto.get(
+                    "priceMin"
+                ) or 0
             )
 
-            desconto = round(desconto_fracao * 100, 2)
+            preco_maximo = float(
+                produto.get(
+                    "priceMax"
+                ) or preco
+            )
 
-            if 0 < desconto_fracao < 1:
+            # --------------------------------------------------
+            # DESCONTO
+            # --------------------------------------------------
+
+            desconto_valor = float(
+                produto.get(
+                    "priceDiscountRate"
+                ) or 0
+            )
+
+            # Algumas APIs retornam:
+            #
+            # 0.15 = 15%
+            #
+            # Outras podem retornar:
+            #
+            # 15 = 15%
+            #
+            # Então tratamos os dois casos.
+
+            if 0 < desconto_valor <= 1:
+
+                desconto = round(
+                    desconto_valor * 100,
+                    2
+                )
 
                 preco_antigo = round(
-                    preco / (1 - desconto_fracao),
+                    preco /
+                    (1 - desconto_valor),
+                    2
+                )
+
+            elif desconto_valor > 1:
+
+                desconto = round(
+                    desconto_valor,
+                    2
+                )
+
+                preco_antigo = round(
+                    preco /
+                    (1 - desconto_valor / 100),
                     2
                 )
 
             else:
 
+                desconto = 0
+
                 preco_antigo = preco
 
-            link_afiliado = self._gerar_link_afiliado(url)
+            # --------------------------------------------------
+            # GERA LINK DE AFILIADO
+            # --------------------------------------------------
 
-            return {
+            print(
+                "Gerando link de afiliado..."
+            )
+
+            link_afiliado = (
+                self._gerar_link_afiliado(
+                    url
+                )
+            )
+
+            # --------------------------------------------------
+            # RESULTADO
+            # --------------------------------------------------
+
+            resultado = {
 
                 "erro": False,
 
                 "loja": "SHOPEE",
 
-                "id": produto.get("itemId", item_id),
+                "id": produto.get(
+                    "itemId",
+                    item_id
+                ),
 
-                "produto": produto.get("productName", ""),
+                "shop_id": shop_id,
+
+                "produto": produto.get(
+                    "productName",
+                    ""
+                ),
 
                 "categoria": "",
 
                 "preco": preco,
+
+                "preco_maximo": preco_maximo,
 
                 "preco_antigo": preco_antigo,
 
@@ -233,13 +456,45 @@ class ShopeeCollector:
 
                 "estoque": True,
 
-                "imagem": produto.get("imageUrl", ""),
+                "imagem": produto.get(
+                    "imageUrl",
+                    ""
+                ),
+
+                "shop": produto.get(
+                    "shopName",
+                    ""
+                ),
+
+                "url_original": url,
 
                 "url": link_afiliado
-
             }
 
+            print(
+                "Produto coletado com sucesso!"
+            )
+
+            print(
+                f"Produto: {resultado['produto']}"
+            )
+
+            print(
+                f"Preço: {resultado['preco']}"
+            )
+
+            print(
+                f"Desconto: {resultado['desconto']}%"
+            )
+
+            return resultado
+
         except Exception as erro:
+
+            print(
+                f"Erro ao coletar produto "
+                f"da Shopee: {erro}"
+            )
 
             return {
 
@@ -247,6 +502,9 @@ class ShopeeCollector:
 
                 "mensagem": str(erro),
 
-                "url": url
+                "shop_id": shop_id,
 
+                "item_id": item_id,
+
+                "url": url
             }
