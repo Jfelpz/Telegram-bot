@@ -33,8 +33,27 @@ class AwinAPI:
             timeout=30
         )
 
+        print(f"URL Awin: {url}")
         print(f"Status Awin: {resposta.status_code}")
 
         resposta.raise_for_status()
 
         return resposta.json()
+
+    def get_response(self, endpoint, params=None):
+
+        url = f"{self.BASE_URL}{endpoint}"
+
+        resposta = requests.get(
+            url,
+            headers=self.headers(),
+            params=params,
+            timeout=60
+        )
+
+        print(f"URL Awin: {url}")
+        print(f"Status Awin: {resposta.status_code}")
+
+        resposta.raise_for_status()
+
+        return resposta
