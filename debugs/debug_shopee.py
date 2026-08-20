@@ -13,7 +13,7 @@ def main():
     # ==========================================================
 
     url = (
-        "COLE_AQUI_UMA_URL_DE_PRODUTO_DA_SHOPEE"
+        "https://shopee.com.br/product/291989680/23419219647"
     )
 
     print()
