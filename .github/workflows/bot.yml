@@ -48,7 +48,7 @@ jobs:
           AWIN_TOKEN: ${{ secrets.AWIN_TOKEN }}
 
         run: |
-          python -u debugs/debug_awin.py
+          python -m debugs.debug_awin
 
       - name: Upload HTML de debug (se houver)
         if: always()
