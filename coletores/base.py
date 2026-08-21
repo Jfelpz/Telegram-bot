@@ -2,6 +2,7 @@ from urllib.parse import urlparse
 
 from coletores.magalu import MagaluCollector
 from coletores.aliexpress import AliExpressCollector
+from coletores.shopee import ShopeeCollector
 
 
 class ColetorBase:
@@ -19,6 +20,9 @@ class ColetorBase:
             "pt.aliexpress.com": AliExpressCollector(),
             "best.aliexpress.com": AliExpressCollector(),
             "m.aliexpress.com": AliExpressCollector(),
+
+            # Shopee
+            "shopee.com.br": ShopeeCollector(),
         }
 
     # =====================================================
@@ -33,13 +37,11 @@ class ColetorBase:
 
         # Aceita qualquer subdomínio do AliExpress
         if "aliexpress.com" in dominio:
-
             return AliExpressCollector()
 
         for site, coletor in self.coletores.items():
 
             if site in dominio:
-
                 return coletor
 
         raise Exception(f"Loja não suportada: {dominio}")
