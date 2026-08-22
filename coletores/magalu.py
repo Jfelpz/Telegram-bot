@@ -1,4 +1,5 @@
 import json
+import random
 import re
 
 from playwright.sync_api import sync_playwright
@@ -28,6 +29,11 @@ class MagaluCollector:
     TIMEOUT = 90000
 
     HEADLESS = True
+
+    # Intervalo aleatório de espera "humana" antes de ler a
+    # página, para disfarçar o padrão de automação.
+    ESPERA_MIN_SEGUNDOS = 40
+    ESPERA_MAX_SEGUNDOS = 93  # 1 minuto e 33 segundos
 
     # ==========================================================
     # CONVERTE VALOR PARA FLOAT
@@ -110,9 +116,32 @@ class MagaluCollector:
                         "Continuando com o conteúdo disponível..."
                     )
 
-                page.wait_for_timeout(3000)
+                # Espera aleatória "humana" antes de continuar,
+                # para disfarçar o padrão de automação.
+                espera_segundos = random.uniform(
+                    self.ESPERA_MIN_SEGUNDOS,
+                    self.ESPERA_MAX_SEGUNDOS
+                )
+
+                print(
+                    f"Aguardando {espera_segundos:.1f}s "
+                    f"antes de continuar..."
+                )
+
+                page.wait_for_timeout(
+                    int(espera_segundos * 1000)
+                )
 
                 html = page.content()
+
+                if self._eh_pagina_captcha(html):
+
+                    print(
+                        "Página de captcha (Altcha) detectada. "
+                        "Tentando resolver..."
+                    )
+
+                    html = self._tentar_resolver_captcha(page)
 
                 print(
                     f"HTML obtido com sucesso. "
@@ -125,6 +154,95 @@ class MagaluCollector:
 
                 if browser:
                     browser.close()
+
+    # ==========================================================
+    # DETECTA PÁGINA DE CAPTCHA (Altcha)
+    # ==========================================================
+
+    def _eh_pagina_captcha(self, html: str) -> bool:
+
+        html_lower = html.lower()
+
+        indicadores = [
+            "captcha magalu",
+            "az-request-verify",
+            "altcha"
+        ]
+
+        return any(
+            indicador in html_lower
+            for indicador in indicadores
+        )
+
+    # ==========================================================
+    # TENTA RESOLVER O CAPTCHA (Altcha)
+    # ==========================================================
+
+    def _tentar_resolver_captcha(self, page) -> str:
+
+        try:
+
+            print("Clicando na verificação 'I'm not a robot'...")
+
+            page.click(
+                ".altcha-checkbox",
+                timeout=5000
+            )
+
+        except Exception as erro:
+
+            print(
+                "Não foi possível clicar na verificação:",
+                erro
+            )
+
+            return page.content()
+
+        # Aguarda o proof-of-work ser calculado
+        try:
+
+            page.wait_for_selector(
+                '[data-state="verified"]',
+                timeout=20000
+            )
+
+            print("Verificação concluída (data-state=verified).")
+
+        except Exception:
+
+            print(
+                "Aviso: não confirmou verificação dentro "
+                "do tempo esperado."
+            )
+
+        # Aguarda eventual redirecionamento automático
+        try:
+
+            page.wait_for_load_state(
+                "networkidle",
+                timeout=20000
+            )
+
+        except Exception:
+            pass
+
+        page.wait_for_timeout(3000)
+
+        html_final = page.content()
+
+        if self._eh_pagina_captcha(html_final):
+
+            print(
+                "Ainda na página de captcha após a tentativa."
+            )
+
+        else:
+
+            print(
+                "Captcha superado, página real carregada."
+            )
+
+        return html_final
 
     # ==========================================================
     # EXTRAI __NEXT_DATA__
