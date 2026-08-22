@@ -161,18 +161,24 @@ class MagaluCollector:
 
     def _eh_pagina_captcha(self, html: str) -> bool:
 
-        html_lower = html.lower()
-
-        indicadores = [
-            "captcha magalu",
-            "az-request-verify",
-            "altcha"
-        ]
-
-        return any(
-            indicador in html_lower
-            for indicador in indicadores
+        match_titulo = re.search(
+            r'<title[^>]*>(.*?)</title>',
+            html,
+            re.DOTALL | re.IGNORECASE
         )
+
+        if match_titulo:
+
+            titulo = match_titulo.group(1).strip().lower()
+
+            if "captcha" in titulo:
+                return True
+
+        # Fallback: verifica o card de captcha específico
+        # (mais preciso que procurar "altcha" em qualquer
+        # lugar do HTML, já que o script pode ficar carregado
+        # em segundo plano mesmo na página real).
+        return 'class="captcha-card"' in html.lower()
 
     # ==========================================================
     # TENTA RESOLVER O CAPTCHA (Altcha)
