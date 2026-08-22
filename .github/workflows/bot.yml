@@ -39,6 +39,7 @@ jobs:
           SHOPEE_APP_SECRET: ${{ secrets.SHOPEE_APP_SECRET }}
           #Awin(Kabum e Samsawung)
           AWIN_TOKEN: ${{ secrets.AWIN_TOKEN }}
+          AWIN_FEED_URL: ${{ secrets.AWIN_FEED_URL }}
         run: |
           python -u bot.py
       - name: Upload HTML de debug (se houver)
