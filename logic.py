@@ -122,6 +122,83 @@ def intervalo_respeitado(config, produtos):
     )
 
 
+
+# =====================================================
+# CONVERSÃO DE DESCONTO
+# =====================================================
+
+def desconto_para_float(valor):
+    """
+    Converte valores como 65,02, 65.02 ou 65,02%
+    para float.
+    """
+
+    try:
+        return float(
+            str(valor)
+            .strip()
+            .replace("%", "")
+            .replace(",", ".")
+        )
+    except:
+        return 0.0
+
+
+# =====================================================
+# ELEGIBILIDADE PARA POSTAGEM / REPOSTAGEM
+# =====================================================
+
+def pode_publicar_produto(status, desconto_atual,
+                          ultimo_desconto_enviado,
+                          aumento_minimo_repostagem):
+    """
+    Retorna (pode_publicar, motivo).
+
+    PENDENTE:
+        Pode ser publicado normalmente.
+
+    ENVIADO:
+        Só pode ser publicado novamente se o desconto atual
+        tiver aumentado pelo menos AUMENTO_MINIMO_REPOSTAGEM
+        em relação ao último desconto enviado.
+    """
+
+    status = str(status or "").strip().upper()
+
+    if status == "PENDENTE":
+        return True, "PRIMEIRA POSTAGEM"
+
+    if status == "ENVIADO":
+
+        ultimo_desconto = desconto_para_float(
+            ultimo_desconto_enviado
+        )
+
+        diferenca = desconto_atual - ultimo_desconto
+
+        if diferenca >= aumento_minimo_repostagem:
+
+            return (
+                True,
+                (
+                    f"REPOSTAGEM LIBERADA -> desconto aumentou "
+                    f"{diferenca:.2f}% "
+                    f"({ultimo_desconto:.2f}% -> "
+                    f"{desconto_atual:.2f}%)"
+                )
+            )
+
+        return (
+            False,
+            (
+                f"IGNORADO -> Já enviado. Aumento de desconto "
+                f"insuficiente: {diferenca:.2f}% "
+                f"(mínimo: {aumento_minimo_repostagem:.2f}%)"
+            )
+        )
+
+    return False, f"IGNORADO -> STATUS = {status or 'VAZIO'}"
+
 # =====================================================
 # PROCESSAMENTO
 # =====================================================
@@ -141,6 +218,7 @@ def processar(dados_atualizados):
     print("HORA_FIM:", config.get("HORA_FIM"))
     print("INTERVALO_MIN:", config.get("INTERVALO_MIN"))
     print("INTERVALO_MAX:", config.get("INTERVALO_MAX"))
+    print("AUMENTO_MINIMO_REPOSTAGEM:", config.get("AUMENTO_MINIMO_REPOSTAGEM", 5))
 
     if not config.get("BOT_ATIVO", True):
 
@@ -154,6 +232,10 @@ def processar(dados_atualizados):
 
     desconto_minimo = float(
         config.get("DESCONTO_MINIMO", 0)
+    )
+
+    aumento_minimo_repostagem = float(
+        config.get("AUMENTO_MINIMO_REPOSTAGEM", 5)
     )
 
     produtos = carregar_banco()
@@ -212,17 +294,31 @@ def processar(dados_atualizados):
             continue
 
         # ==========================================
-        # STATUS
+        # STATUS / REPOSTAGEM
         # ==========================================
 
         status = str(
             produto.get("STATUS", "")
         ).strip().upper()
 
-        if status != "PENDENTE":
+        desconto_atual = desconto_para_float(
+            dados.get("desconto", 0)
+        )
 
-            print(f"IGNORADO -> STATUS = {status}")
+        ultimo_desconto_enviado = (
+            produto.get("ULTIMO_DESCONTO_ENVIADO", "")
+        )
 
+        pode_publicar, motivo = pode_publicar_produto(
+            status=status,
+            desconto_atual=desconto_atual,
+            ultimo_desconto_enviado=ultimo_desconto_enviado,
+            aumento_minimo_repostagem=aumento_minimo_repostagem
+        )
+
+        print(motivo)
+
+        if not pode_publicar:
             continue
 
         # ==========================================
@@ -258,9 +354,7 @@ def processar(dados_atualizados):
         # DESCONTO
         # ==========================================
 
-        desconto = float(
-            dados.get("desconto", 0)
-        )
+        desconto = desconto_atual
 
         if desconto < desconto_minimo:
 
