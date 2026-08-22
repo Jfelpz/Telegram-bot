@@ -1,88 +1,155 @@
 import os
-import json
+import csv
+import gzip
+import io
+import requests
 
-from coletores.awin import AwinAPI
+
+AWIN_FEED_URL = os.getenv("AWIN_FEED_URL")
 
 
-class ColetorKabum:
+def baixar_feed_kabum():
+    """
+    Baixa e descompacta o feed da Awin.
+    """
 
-    def __init__(self):
-
-        self.awin = AwinAPI()
-
-        self.publisher_id = os.getenv(
-            "AWIN_PUBLISHER_ID"
+    if not AWIN_FEED_URL:
+        raise ValueError(
+            "AWIN_FEED_URL não foi configurada."
         )
 
-        self.advertiser_id = os.getenv(
-            "AWIN_KABUM_ADVERTISER_ID"
+    print("=" * 50)
+    print("INICIANDO COLETA - KABUM / AWIN")
+    print("=" * 50)
+
+    print("Baixando feed da Awin...")
+
+    response = requests.get(
+        AWIN_FEED_URL,
+        timeout=120
+    )
+
+    response.raise_for_status()
+
+    print(
+        f"Download concluído: "
+        f"{len(response.content)} bytes"
+    )
+
+    print("Descompactando feed...")
+
+    try:
+        conteudo = gzip.decompress(
+            response.content
+        ).decode(
+            "utf-8-sig",
+            errors="replace"
         )
 
-        if not self.publisher_id:
-            raise ValueError(
-                "AWIN_PUBLISHER_ID não encontrado."
+    except OSError:
+        print(
+            "Aviso: resposta não estava comprimida."
+        )
+
+        conteudo = response.content.decode(
+            "utf-8-sig",
+            errors="replace"
+        )
+
+    return conteudo
+
+
+def ler_produtos_kabum():
+    """
+    Lê os produtos do CSV da Awin.
+    """
+
+    conteudo = baixar_feed_kabum()
+
+    leitor = csv.DictReader(
+        io.StringIO(conteudo),
+        delimiter=";"
+    )
+
+    produtos = []
+
+    for produto in leitor:
+
+        merchant_id = str(
+            produto.get(
+                "merchant_id",
+                ""
             )
+        ).strip()
 
-        if not self.advertiser_id:
-            raise ValueError(
-                "AWIN_KABUM_ADVERTISER_ID não encontrado."
+        merchant_name = str(
+            produto.get(
+                "merchant_name",
+                ""
             )
+        ).strip()
 
-    def coletar(self):
+        # Segurança extra:
+        # somente produtos da KaBuM
+        if merchant_id != "17729":
+            continue
 
-        print("=" * 50)
-        print("INICIANDO COLETA - KABUM")
-        print("=" * 50)
+        produtos.append(produto)
 
-        try:
+    print(
+        f"Produtos KaBuM encontrados: "
+        f"{len(produtos)}"
+    )
 
-            endpoint = (
-                f"/publishers/{self.publisher_id}"
-                f"/awinfeeds/download/"
-                f"{self.advertiser_id}-retail-pt_BR.jsonl"
-            )
+    return produtos
 
-            resposta = self.awin.get_response(
-                endpoint
-            )
 
-            produtos = []
+if __name__ == "__main__":
 
-            for linha in resposta.text.splitlines():
+    produtos = ler_produtos_kabum()
 
-                linha = linha.strip()
+    print()
 
-                if not linha:
-                    continue
+    for produto in produtos[:5]:
 
-                try:
+        print("-" * 50)
 
-                    produto = json.loads(linha)
+        print(
+            "Produto:",
+            produto.get("product_name")
+        )
 
-                    produtos.append(produto)
+        print(
+            "Preço:",
+            produto.get("search_price")
+        )
 
-                except json.JSONDecodeError:
+        print(
+            "Preço antigo:",
+            produto.get("product_price_old")
+        )
 
-                    print(
-                        "Linha inválida ignorada."
-                    )
+        print(
+            "Desconto:",
+            produto.get("savings_percent")
+        )
 
-            print(
-                f"Produtos encontrados: "
-                f"{len(produtos)}"
-            )
+        print(
+            "Estoque:",
+            produto.get("in_stock")
+        )
 
-            # TESTE:
-            # vamos limitar temporariamente
-            # para não imprimir milhares de produtos
+        print(
+            "Status estoque:",
+            produto.get("stock_status")
+        )
 
-            return produtos[:5]
+        print(
+            "Link afiliado:",
+            produto.get("aw_deep_link")
+        )
 
-        except Exception as erro:
-
-            print(
-                f"Erro ao coletar produtos "
-                f"da KaBuM: {erro}"
-            )
-
-            return []
+        print(
+            "Imagem:",
+            produto.get("large_image")
+        )
