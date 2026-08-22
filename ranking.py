@@ -100,6 +100,39 @@ def calcular_bonus_recencia(data):
     return 0
 
 
+
+# ==================================================
+# REGRA DE REPOSTAGEM
+# ==================================================
+
+AUMENTO_MINIMO_REPOSTAGEM_PADRAO = 5
+
+
+def pode_repostar(produto,
+                  aumento_minimo=AUMENTO_MINIMO_REPOSTAGEM_PADRAO):
+
+    status = str(
+        produto.get("STATUS", "")
+    ).strip().upper()
+
+    if status != "ENVIADO":
+        # Mantém o comportamento anterior do ranking:
+        # somente ENVIADO recebe tratamento especial.
+        return True
+
+    desconto_atual = desconto_para_float(
+        produto.get("DESCONTO", 0)
+    )
+
+    ultimo_desconto = desconto_para_float(
+        produto.get("ULTIMO_DESCONTO_ENVIADO", 0)
+    )
+
+    return (
+        desconto_atual - ultimo_desconto
+        >= aumento_minimo
+    )
+
 # ==================================================
 # SCORE
 # ==================================================
@@ -200,9 +233,18 @@ def gerar_ranking(produtos):
             produto.get("STATUS", "")
         ).strip().upper()
 
-        if status == "ENVIADO":
+        if not pode_repostar(produto):
 
-            print(f"✅ Já enviado: {nome}")
+            if status == "ENVIADO":
+                print(
+                    f"✅ Já enviado sem aumento suficiente "
+                    f"de desconto: {nome}"
+                )
+            else:
+                print(
+                    f"⏸ Status não elegível para postagem: "
+                    f"{nome} ({status or 'VAZIO'})"
+                )
 
             continue
 
