@@ -603,6 +603,41 @@ class MagaluCollector:
         }
 
     # ==========================================================
+    # SALVA HTML DE DEBUG (quando nenhuma estratégia funciona)
+    # ==========================================================
+
+    def _salvar_debug(self, html: str):
+
+        try:
+
+            from pathlib import Path
+
+            debug_dir = (
+                Path(__file__).resolve().parent.parent / "debugs"
+            )
+
+            debug_dir.mkdir(
+                parents=True,
+                exist_ok=True
+            )
+
+            caminho = debug_dir / "magalu_debug.html"
+
+            caminho.write_text(
+                html,
+                encoding="utf-8"
+            )
+
+            print(f"[DEBUG] HTML salvo em: {caminho}")
+
+        except Exception as erro:
+
+            print(
+                "[DEBUG] Não foi possível salvar o HTML:",
+                erro
+            )
+
+    # ==========================================================
     # MÉTODO PRINCIPAL
     # ==========================================================
 
@@ -711,11 +746,14 @@ class MagaluCollector:
             # NENHUMA ESTRATÉGIA FUNCIONOU
             # ----------------------------------------------
 
+            self._salvar_debug(html)
+
             raise Exception(
                 "Não foi possível localizar os dados "
                 "estruturados do produto. "
                 "Nenhum __NEXT_DATA__ ou Product JSON-LD "
-                "foi encontrado."
+                "foi encontrado. HTML salvo em debugs/ "
+                "para inspeção."
             )
 
         except Exception as erro:
